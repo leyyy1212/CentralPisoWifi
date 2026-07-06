@@ -2,7 +2,7 @@
 # Edit this file for each PisoWiFi machine you deploy.
 
 # URL of your central Flask server
-SERVER_URL = "http://127.0.0.1:5000"
+SERVER_URL = "https://central-pisowifi.onrender.com"
 # Production: SERVER_URL = "https://your-app.onrender.com"
 
 # Unique code for this machine (must exist in hotspots table)

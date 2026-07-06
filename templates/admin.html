@@ -3,337 +3,675 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Central PisoWiFi — Admin</title>
+<title>Central PisoWiFi — Dashboard</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 
-  :root {
-    --bg:        #0f1117;
-    --surface:   #1a1d27;
-    --border:    #2a2d3a;
-    --accent:    #3b82f6;
-    --accent2:   #10b981;
-    --danger:    #ef4444;
-    --warn:      #f59e0b;
-    --text:      #e2e8f0;
-    --muted:     #64748b;
-    --mono:      'JetBrains Mono', monospace;
-    --sans:      'Inter', sans-serif;
-  }
+:root {
+  --bg:       #06090f;
+  --surface:  #0d1117;
+  --surface2: #131920;
+  --border:   #1e2d3d;
+  --border2:  #243447;
+  --blue:     #2f80ed;
+  --blue-dim: rgba(47,128,237,0.12);
+  --blue-glow:rgba(47,128,237,0.2);
+  --green:    #27ae60;
+  --green-dim:rgba(39,174,96,0.12);
+  --danger:   #e74c3c;
+  --danger-dim:rgba(231,76,60,0.12);
+  --warn:     #f39c12;
+  --warn-dim: rgba(243,156,18,0.12);
+  --purple:   #8b5cf6;
+  --text:     #dce8f5;
+  --text2:    #8ba3bc;
+  --text3:    #4a6278;
+  --sans:     'Plus Jakarta Sans', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+  --sidebar:  220px;
+}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    font-family: var(--sans);
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-  }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+}
 
-  .layout { display: flex; min-height: 100vh; }
+/* ── Sidebar ── */
+.sidebar {
+  width: var(--sidebar);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  z-index: 100;
+}
 
-  /* ── Sidebar ── */
-  .sidebar {
-    width: 220px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 24px 0;
-    position: fixed;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
+.sidebar-brand {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-  .logo {
-    padding: 0 20px 24px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 16px;
-  }
-  .logo h1 { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
-  .logo p  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.sidebar-brand .icon {
+  width: 34px; height: 34px;
+  background: var(--blue);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  box-shadow: 0 4px 12px var(--blue-glow);
+  flex-shrink: 0;
+}
 
-  .nav-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 20px;
-    font-size: 13px; font-weight: 500;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all .15s;
-    border-left: 2px solid transparent;
-  }
-  .nav-item:hover  { color: var(--text); background: rgba(255,255,255,.04); }
-  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(59,130,246,.08); }
-  .nav-item .icon  { font-size: 16px; }
+.sidebar-brand .name { font-size: 13px; font-weight: 700; line-height: 1.3; }
+.sidebar-brand .sub  { font-size: 10px; color: var(--text2); }
 
-  .live-badge {
-    margin: auto 20px 20px;
-    background: rgba(16,185,129,.1);
-    border: 1px solid rgba(16,185,129,.25);
-    border-radius: 6px;
-    padding: 10px 12px;
-    font-size: 11px;
-    color: var(--accent2);
-    display: flex; align-items: center; gap: 6px;
-  }
-  .live-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--accent2);
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.sidebar-nav { padding: 12px 10px; flex: 1; overflow-y: auto; }
 
-  /* ── Main ── */
-  .main { margin-left: 220px; padding: 32px; flex: 1; }
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  padding: 8px 10px 6px;
+}
 
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 32px;
-  }
-  .topbar h2 { font-size: 20px; font-weight: 600; }
-  .refresh-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: border-color .15s;
-  }
-  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .15s;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+}
 
-  /* ── Stat Cards ── */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    transition: border-color .15s;
-  }
-  .stat-card:hover { border-color: var(--accent); }
-  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
-  .stat-value { font-family: var(--mono); font-size: 26px; font-weight: 600; }
-  .green  { color: var(--accent2); }
-  .blue   { color: var(--accent); }
-  .yellow { color: var(--warn); }
-  .red    { color: var(--danger); }
+.nav-item:hover { color: var(--text); background: var(--surface2); }
 
-  /* ── Sections ── */
-  .section { display: none; }
-  .section.active { display: block; }
+.nav-item.active {
+  color: var(--blue);
+  background: var(--blue-dim);
+  border-color: rgba(47,128,237,0.15);
+  font-weight: 600;
+}
 
-  .section-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 16px;
-  }
-  .section-title { font-size: 15px; font-weight: 600; }
+.nav-item .nav-icon { font-size: 15px; flex-shrink: 0; }
 
-  /* ── Create Voucher Form ── */
-  .create-form {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 24px;
-    display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
-  }
-  .form-group { display: flex; flex-direction: column; gap: 6px; }
-  .form-group label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-  .form-group input {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-family: var(--mono);
-    width: 180px;
-    outline: none;
-    transition: border-color .15s;
-  }
-  .form-group input:focus { border-color: var(--accent); }
+.nav-item .nav-badge {
+  margin-left: auto;
+  background: var(--blue-dim);
+  color: var(--blue);
+  border-radius: 99px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--mono);
+}
 
-  .btn {
-    padding: 9px 18px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    transition: opacity .15s;
-  }
-  .btn:hover { opacity: .85; }
-  .btn-primary { background: var(--accent);  color: #fff; }
-  .btn-danger  { background: var(--danger);  color: #fff; }
-  .btn-warn    { background: var(--warn);    color: #000; }
-  .btn-sm { padding: 5px 10px; font-size: 11px; }
+.sidebar-bottom {
+  padding: 12px 10px;
+  border-top: 1px solid var(--border);
+}
 
-  /* ── Table ── */
-  .table-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  table { width: 100%; border-collapse: collapse; }
-  thead { background: rgba(255,255,255,.03); }
-  th {
-    padding: 12px 16px;
-    text-align: left;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    border-bottom: 1px solid var(--border);
-  }
-  td {
-    padding: 12px 16px;
-    font-size: 13px;
-    border-bottom: 1px solid var(--border);
-  }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,.02); }
+.online-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: var(--green-dim);
+  border: 1px solid rgba(39,174,96,0.15);
+  font-size: 12px;
+  font-weight: 600;
+  color: #2ecc71;
+  margin-bottom: 8px;
+}
 
-  .code { font-family: var(--mono); font-size: 12px; }
+.online-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #2ecc71;
+  box-shadow: 0 0 6px #2ecc71;
+  animation: blink 2s infinite;
+  flex-shrink: 0;
+}
 
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 99px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-  }
-  .badge-green  { background: rgba(16,185,129,.15);  color: var(--accent2); }
-  .badge-red    { background: rgba(239,68,68,.15);   color: var(--danger); }
-  .badge-yellow { background: rgba(245,158,11,.15);  color: var(--warn); }
-  .badge-gray   { background: rgba(100,116,139,.15); color: var(--muted); }
-  .badge-blue   { background: rgba(59,130,246,.15);  color: var(--accent); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-  .actions { display: flex; gap: 6px; }
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all .15s;
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: var(--sans);
+}
 
-  /* ── Toast ── */
-  .toast {
-    position: fixed; bottom: 24px; right: 24px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 20px;
-    font-size: 13px;
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all .25s;
-    z-index: 999;
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { border-color: var(--accent2); color: var(--accent2); }
-  .toast.error   { border-color: var(--danger);  color: var(--danger); }
+.logout-btn:hover { color: var(--danger); background: var(--danger-dim); }
 
-  .empty { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; }
+/* ── Main ── */
+.main {
+  margin-left: var(--sidebar);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  background: rgba(6,9,15,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 50;
+}
+
+.topbar-title { font-size: 15px; font-weight: 700; }
+
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.refresh-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 7px 14px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: all .15s;
+}
+.refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+.admin-chip {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 5px 12px 5px 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  display: flex; align-items: center; gap: 6px;
+}
+
+.admin-chip .avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+  color: #fff;
+}
+
+/* ── Content ── */
+.content { padding: 28px; flex: 1; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── Stats grid ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  transition: border-color .2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  opacity: 0.06;
+  transform: translate(20px,-20px);
+}
+
+.stat-card.blue::after  { background: var(--blue); }
+.stat-card.green::after { background: var(--green); }
+.stat-card.warn::after  { background: var(--warn); }
+.stat-card.purple::after{ background: var(--purple); }
+
+.stat-card:hover { border-color: var(--border2); }
+
+.stat-icon {
+  font-size: 18px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat-value.blue   { color: var(--blue); }
+.stat-value.green  { color: #2ecc71; }
+.stat-value.warn   { color: var(--warn); }
+.stat-value.purple { color: var(--purple); }
+
+/* ── Section header ── */
+.sec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sec-title { font-size: 14px; font-weight: 700; }
+.sec-count { font-size: 12px; color: var(--text3); font-family: var(--mono); }
+
+/* ── Create form ── */
+.create-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+
+.field-group label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.field-group input,
+.field-group select {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-family: var(--mono);
+  font-weight: 600;
+  outline: none;
+  transition: border-color .15s;
+  width: 150px;
+}
+
+.field-group input:focus,
+.field-group select:focus { border-color: var(--blue); }
+
+.field-group select option { background: var(--surface2); }
+
+.btn-create {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 9px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px var(--blue-glow);
+}
+
+.btn-create:hover { background: #3d8ef0; }
+
+/* ── Table ── */
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+table { width: 100%; border-collapse: collapse; }
+
+thead tr { background: var(--surface2); }
+
+th {
+  padding: 11px 16px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+td {
+  padding: 12px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,.015); }
+
+.mono { font-family: var(--mono); font-size: 12px; font-weight: 600; }
+
+/* ── Badges ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+
+.badge-green  { background: var(--green-dim);  color: #2ecc71; border: 1px solid rgba(39,174,96,.2); }
+.badge-blue   { background: var(--blue-dim);   color: #56a5ff; border: 1px solid rgba(47,128,237,.2); }
+.badge-warn   { background: var(--warn-dim);   color: var(--warn); border: 1px solid rgba(243,156,18,.2); }
+.badge-danger { background: var(--danger-dim); color: #e88; border: 1px solid rgba(231,76,60,.2); }
+.badge-gray   { background: rgba(255,255,255,.04); color: var(--text3); border: 1px solid var(--border); }
+
+.badge .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+/* ── Action buttons ── */
+.actions { display: flex; gap: 6px; }
+
+.act-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--sans);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all .15s;
+}
+
+.act-suspend { background: var(--warn-dim);   color: var(--warn);   border-color: rgba(243,156,18,.2); }
+.act-suspend:hover { background: rgba(243,156,18,.2); }
+.act-delete  { background: var(--danger-dim); color: #e88;          border-color: rgba(231,76,60,.2); }
+.act-delete:hover  { background: rgba(231,76,60,.2); }
+
+/* ── Empty state ── */
+.empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--text3);
+}
+
+.empty .empty-icon { font-size: 32px; margin-bottom: 12px; display: block; }
+.empty p { font-size: 13px; line-height: 1.6; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: all .25s;
+  z-index: 999;
+  max-width: 320px;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.ok   { border-color: rgba(39,174,96,.3); color: #2ecc71; }
+.toast.err  { border-color: rgba(231,76,60,.3); color: #e88; }
+
+/* ── Spinner ── */
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .65s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 
-<div class="layout">
-
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="logo">
-      <h1>PisoWiFi</h1>
-      <p>Admin Dashboard</p>
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="icon">📶</div>
+    <div>
+      <div class="name">Central PisoWiFi</div>
+      <div class="sub">Admin Console</div>
     </div>
-    <nav>
-      <div class="nav-item active" onclick="showSection('overview', this)"><span class="icon">📊</span> Overview</div>
-      <div class="nav-item" onclick="showSection('vouchers', this)"><span class="icon">🎟️</span> Vouchers</div>
-      <div class="nav-item" onclick="showSection('sessions', this)"><span class="icon">📡</span> Sessions</div>
-      <div class="nav-item" onclick="showSection('transactions', this)"><span class="icon">💰</span> Transactions</div>
-      <div class="nav-item" onclick="showSection('hotspots', this)"><span class="icon">📶</span> Hotspots</div>
-    </nav>
-    <div class="live-badge"><div class="live-dot"></div> Server Online</div>
-  </aside>
+  </div>
 
-  <!-- Main -->
-  <main class="main">
-    <div class="topbar">
-      <h2 id="page-title">Overview</h2>
-      <div style="display:flex;gap:10px;">
-        <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
-        <button class="refresh-btn" style="border-color:var(--danger);color:var(--danger);" onclick="adminLogout()">Logout</button>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <div class="nav-item active" onclick="showSection('overview',this)">
+      <span class="nav-icon">⊞</span> Overview
+    </div>
+    <div class="nav-item" onclick="showSection('vouchers',this)">
+      <span class="nav-icon">🎟</span> Vouchers
+    </div>
+
+    <div class="nav-section-label" style="margin-top:12px">Activity</div>
+    <div class="nav-item" onclick="showSection('sessions',this)">
+      <span class="nav-icon">📡</span> Sessions
+      <span class="nav-badge" id="nav-sessions">0</span>
+    </div>
+    <div class="nav-item" onclick="showSection('transactions',this)">
+      <span class="nav-icon">💳</span> Transactions
+    </div>
+
+    <div class="nav-section-label" style="margin-top:12px">Network</div>
+    <div class="nav-item" onclick="showSection('hotspots',this)">
+      <span class="nav-icon">📶</span> Hotspots
+    </div>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="online-badge">
+      <div class="online-dot"></div>
+      Server Online
+    </div>
+    <button class="logout-btn" onclick="adminLogout()">
+      <span>⎋</span> Sign Out
+    </button>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Overview</div>
+    <div class="topbar-right">
+      <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+      <div class="admin-chip">
+        <div class="avatar">A</div>
+        Admin
       </div>
     </div>
+  </div>
 
-    <!-- Stats always visible -->
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">Total Vouchers</div><div class="stat-value blue"  id="s-total">—</div></div>
-      <div class="stat-card"><div class="stat-label">Active Vouchers</div><div class="stat-value green" id="s-active">—</div></div>
-      <div class="stat-card"><div class="stat-label">Live Sessions</div><div class="stat-value yellow" id="s-sessions">—</div></div>
-      <div class="stat-card"><div class="stat-label">Total Income</div><div class="stat-value green" id="s-income">—</div></div>
-      <div class="stat-card"><div class="stat-label">Transactions</div><div class="stat-value blue"  id="s-tx">—</div></div>
-      <div class="stat-card"><div class="stat-label">Hotspots</div><div class="stat-value blue"  id="s-hotspots">—</div></div>
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Stats (always visible) -->
+    <div class="stats-row">
+      <div class="stat-card blue">
+        <span class="stat-icon">🎟</span>
+        <div class="stat-label">Total Vouchers</div>
+        <div class="stat-value blue" id="s-total">—</div>
+      </div>
+      <div class="stat-card green">
+        <span class="stat-icon">✅</span>
+        <div class="stat-label">Active Vouchers</div>
+        <div class="stat-value green" id="s-active">—</div>
+      </div>
+      <div class="stat-card warn">
+        <span class="stat-icon">📡</span>
+        <div class="stat-label">Live Sessions</div>
+        <div class="stat-value warn" id="s-sessions">—</div>
+      </div>
+      <div class="stat-card green">
+        <span class="stat-icon">💰</span>
+        <div class="stat-label">Total Income</div>
+        <div class="stat-value green" id="s-income">—</div>
+      </div>
+      <div class="stat-card blue">
+        <span class="stat-icon">💳</span>
+        <div class="stat-label">Transactions</div>
+        <div class="stat-value blue" id="s-tx">—</div>
+      </div>
+      <div class="stat-card purple">
+        <span class="stat-icon">📶</span>
+        <div class="stat-label">Hotspots</div>
+        <div class="stat-value purple" id="s-hotspots">—</div>
+      </div>
     </div>
 
     <!-- Overview -->
     <div class="section active" id="section-overview">
-      <div class="section-header"><div class="section-title">Recent Vouchers</div></div>
-      <div class="table-wrap" id="overview-table"><div class="empty">Loading...</div></div>
+      <div class="sec-header">
+        <div class="sec-title">Recent Vouchers</div>
+      </div>
+      <div class="table-card" id="overview-table">
+        <div class="empty"><span class="empty-icon">⏳</span><p>Loading data...</p></div>
+      </div>
     </div>
 
     <!-- Vouchers -->
     <div class="section" id="section-vouchers">
-      <div class="create-form">
-        <div class="form-group">
+      <div class="create-card">
+        <div class="field-group">
           <label>Voucher Code</label>
           <input id="new-code" type="text" placeholder="e.g. DAV002" maxlength="20">
         </div>
-        <div class="form-group">
+        <div class="field-group">
           <label>Minutes</label>
-          <input id="new-minutes" type="number" placeholder="60" min="1" style="width:100px">
+          <input id="new-minutes" type="number" placeholder="60" min="1" style="width:90px">
         </div>
-        <div class="form-group">
+        <div class="field-group">
           <label>Amount (₱)</label>
           <input id="new-amount" type="number" placeholder="5.00" min="0" step="0.01" style="width:110px">
         </div>
-        <div class="form-group">
+        <div class="field-group">
           <label>Payment</label>
-          <select id="new-payment" style="width:110px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px;outline:none;">
+          <select id="new-payment" style="width:110px">
             <option value="cash">Cash</option>
             <option value="gcash">GCash</option>
             <option value="maya">Maya</option>
             <option value="card">Card</option>
           </select>
         </div>
-        <button class="btn btn-primary" onclick="createVoucher()">+ Create Voucher</button>
+        <button class="btn-create" onclick="createVoucher()">+ Create Voucher</button>
       </div>
-      <div class="table-wrap" id="voucher-table"><div class="empty">Loading...</div></div>
+
+      <div class="sec-header">
+        <div class="sec-title">All Vouchers</div>
+        <div class="sec-count" id="voucher-count"></div>
+      </div>
+      <div class="table-card" id="voucher-table">
+        <div class="empty"><span class="empty-icon">⏳</span><p>Loading...</p></div>
+      </div>
     </div>
 
     <!-- Sessions -->
     <div class="section" id="section-sessions">
-      <div class="section-header"><div class="section-title">Recent Sessions (last 20)</div></div>
-      <div class="table-wrap" id="session-table"><div class="empty">Loading...</div></div>
+      <div class="sec-header">
+        <div class="sec-title">Recent Sessions</div>
+        <div class="sec-count">Last 20</div>
+      </div>
+      <div class="table-card" id="session-table">
+        <div class="empty"><span class="empty-icon">⏳</span><p>Loading...</p></div>
+      </div>
     </div>
 
     <!-- Transactions -->
     <div class="section" id="section-transactions">
-      <div class="section-header"><div class="section-title">Recent Transactions (last 20)</div></div>
-      <div class="table-wrap" id="tx-table"><div class="empty">Loading...</div></div>
+      <div class="sec-header">
+        <div class="sec-title">Recent Transactions</div>
+        <div class="sec-count">Last 20</div>
+      </div>
+      <div class="table-card" id="tx-table">
+        <div class="empty"><span class="empty-icon">⏳</span><p>Loading...</p></div>
+      </div>
     </div>
 
     <!-- Hotspots -->
     <div class="section" id="section-hotspots">
-      <div class="section-header"><div class="section-title">Registered Hotspots</div></div>
-      <div class="table-wrap" id="hotspot-table"><div class="empty">Loading...</div></div>
+      <div class="sec-header">
+        <div class="sec-title">Registered Hotspots</div>
+      </div>
+      <div class="table-card" id="hotspot-table">
+        <div class="empty"><span class="empty-icon">⏳</span><p>Loading...</p></div>
+      </div>
     </div>
 
-  </main>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -341,19 +679,25 @@
 <script>
 let appData = {};
 
+const TITLES = {
+  overview:'Overview', vouchers:'Vouchers',
+  sessions:'Sessions', transactions:'Transactions', hotspots:'Hotspots'
+};
+
 async function loadData() {
   try {
     const r = await fetch('/dashboard');
     appData = await r.json();
-    if (!appData.success) return showToast('Failed to load data', 'error');
+    if (!appData.success) return showToast('Failed to load data', 'err');
     renderStats(appData.stats);
     renderOverview(appData.vouchers);
     renderVouchers(appData.vouchers);
     renderSessions(appData.sessions);
     renderTransactions(appData.transactions);
     renderHotspots(appData.hotspots);
+    document.getElementById('nav-sessions').textContent = appData.stats.active_sessions;
   } catch(e) {
-    showToast('Server unreachable', 'error');
+    showToast('Server unreachable', 'err');
   }
 }
 
@@ -366,129 +710,134 @@ function renderStats(s) {
   document.getElementById('s-hotspots').textContent = s.total_hotspots;
 }
 
-function statusBadge(status) {
-  const s = (status || '').toLowerCase();
-  const map = { active:'green', suspended:'yellow', exhausted:'gray', used:'gray' };
-  return `<span class="badge badge-${map[s]||'gray'}">${status}</span>`;
+function badge(status) {
+  const s = (status||'').toLowerCase();
+  const map = {active:'green', suspended:'warn', exhausted:'gray', used:'gray', live:'green', ended:'gray', online:'green', inactive:'gray', maintenance:'warn'};
+  const cls = map[s] || 'gray';
+  return `<span class="badge badge-${cls}"><span class="dot"></span>${status}</span>`;
 }
 
 function fmt(dt) {
-  if (!dt) return '—';
-  return new Date(dt).toLocaleString();
+  if (!dt) return '<span style="color:var(--text3)">—</span>';
+  return new Date(dt).toLocaleString('en-PH', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
 function renderOverview(vouchers) {
-  const rows = (vouchers || []).slice(0,10).map(v => `
+  const rows = (vouchers||[]).slice(0,10).map(v => `
     <tr>
-      <td class="code">${v.voucher_code}</td>
-      <td>${v.remaining_minutes} / ${v.total_minutes} min</td>
-      <td>${statusBadge(v.status)}</td>
-      <td>${fmt(v.created_at)}</td>
+      <td><span class="mono">${v.voucher_code}</span></td>
+      <td>${v.remaining_minutes} <span style="color:var(--text3)">/ ${v.total_minutes} min</span></td>
+      <td>${badge(v.status)}</td>
+      <td style="color:var(--text2);font-size:12px">${fmt(v.created_at)}</td>
     </tr>`).join('');
+
   document.getElementById('overview-table').innerHTML = rows
-    ? `<table><thead><tr><th>Code</th><th>Time</th><th>Status</th><th>Created</th></tr></thead><tbody>${rows}</tbody></table>`
-    : '<div class="empty">No vouchers yet</div>';
+    ? `<table><thead><tr><th>Code</th><th>Time Remaining</th><th>Status</th><th>Created</th></tr></thead><tbody>${rows}</tbody></table>`
+    : `<div class="empty"><span class="empty-icon">🎟</span><p>No vouchers yet. Create one in the Vouchers tab.</p></div>`;
 }
 
 function renderVouchers(vouchers) {
-  const rows = (vouchers || []).map(v => `
-    <tr>
-      <td class="code">${v.voucher_code}</td>
-      <td>${v.remaining_minutes} min</td>
-      <td>${v.total_minutes} min</td>
-      <td>${statusBadge(v.status)}</td>
-      <td>${fmt(v.created_at)}</td>
+  document.getElementById('voucher-count').textContent = (vouchers||[]).length + ' total';
+  const rows = (vouchers||[]).map(v => {
+    const susp = (v.status||'').toLowerCase() === 'suspended';
+    return `<tr>
+      <td><span class="mono">${v.voucher_code}</span></td>
+      <td><span class="mono">${v.remaining_minutes}</span></td>
+      <td><span class="mono">${v.total_minutes}</span></td>
+      <td>${badge(v.status)}</td>
+      <td style="color:var(--text2);font-size:12px">${fmt(v.created_at)}</td>
       <td>
         <div class="actions">
-          <button class="btn btn-warn btn-sm" onclick="suspendVoucher('${v.voucher_code}')">
-            ${(v.status||'').toLowerCase() === 'suspended' ? 'Activate' : 'Suspend'}
-          </button>
-          <button class="btn btn-danger btn-sm" onclick="deleteVoucher('${v.voucher_code}')">Delete</button>
+          <button class="act-btn act-suspend" onclick="suspendVoucher('${v.voucher_code}')">${susp ? 'Activate' : 'Suspend'}</button>
+          <button class="act-btn act-delete"  onclick="deleteVoucher('${v.voucher_code}')">Delete</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
+
   document.getElementById('voucher-table').innerHTML = rows
     ? `<table><thead><tr><th>Code</th><th>Remaining</th><th>Total</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`
-    : '<div class="empty">No vouchers yet. Create one above.</div>';
+    : `<div class="empty"><span class="empty-icon">🎟</span><p>No vouchers yet. Use the form above to create one.</p></div>`;
 }
 
 function renderSessions(sessions) {
-  const rows = (sessions || []).map(s => `
+  const rows = (sessions||[]).map(s => `
     <tr>
-      <td class="code">${s.voucher_code}</td>
-      <td class="code">${s.hotspot_code}</td>
-      <td class="code">${s.device_mac || '—'}</td>
-      <td>${s.active ? '<span class="badge badge-green">LIVE</span>' : '<span class="badge badge-gray">ENDED</span>'}</td>
-      <td>${fmt(s.login_time)}</td>
-      <td>${fmt(s.logout_time)}</td>
+      <td><span class="mono">${s.voucher_code}</span></td>
+      <td><span class="mono">${s.hotspot_code}</span></td>
+      <td><span class="mono" style="font-size:11px">${s.device_mac||'—'}</span></td>
+      <td>${s.active ? '<span class="badge badge-green"><span class="dot"></span>Live</span>' : '<span class="badge badge-gray">Ended</span>'}</td>
+      <td style="color:var(--text2);font-size:12px">${fmt(s.login_time)}</td>
+      <td style="color:var(--text2);font-size:12px">${fmt(s.logout_time)}</td>
     </tr>`).join('');
+
   document.getElementById('session-table').innerHTML = rows
     ? `<table><thead><tr><th>Voucher</th><th>Hotspot</th><th>Device MAC</th><th>Status</th><th>Login</th><th>Logout</th></tr></thead><tbody>${rows}</tbody></table>`
-    : '<div class="empty">No sessions yet</div>';
+    : `<div class="empty"><span class="empty-icon">📡</span><p>No sessions recorded yet.</p></div>`;
 }
 
 function renderTransactions(txs) {
-  const rows = (txs || []).map(t => `
+  const rows = (txs||[]).map(t => `
     <tr>
-      <td class="code">${t.voucher_code}</td>
-      <td>₱${parseFloat(t.amount).toFixed(2)}</td>
-      <td>${t.minutes} min</td>
-      <td><span class="badge badge-blue">${t.payment_method}</span></td>
-      <td>${fmt(t.created_at)}</td>
+      <td><span class="mono">${t.voucher_code}</span></td>
+      <td style="font-weight:700;color:#2ecc71">₱${parseFloat(t.amount).toFixed(2)}</td>
+      <td><span class="mono">${t.minutes}</span> min</td>
+      <td>${badge(t.payment_method)}</td>
+      <td style="color:var(--text2);font-size:12px">${fmt(t.created_at)}</td>
     </tr>`).join('');
+
   document.getElementById('tx-table').innerHTML = rows
     ? `<table><thead><tr><th>Voucher</th><th>Amount</th><th>Minutes</th><th>Payment</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>`
-    : '<div class="empty">No transactions yet</div>';
+    : `<div class="empty"><span class="empty-icon">💳</span><p>No transactions yet.</p></div>`;
 }
 
 function renderHotspots(hotspots) {
-  const rows = (hotspots || []).map(h => `
+  const rows = (hotspots||[]).filter(h => h.hotspot_code !== 'PORTAL').map(h => `
     <tr>
-      <td class="code">${h.hotspot_code}</td>
+      <td><span class="mono">${h.hotspot_code}</span></td>
       <td>${h.hotspot_name}</td>
       <td>${h.city}</td>
-      <td>${statusBadge(h.status)}</td>
-      <td class="code" style="font-size:10px">${h.latitude || '—'}, ${h.longitude || '—'}</td>
+      <td>${badge(h.status)}</td>
+      <td><span class="mono" style="font-size:11px;color:var(--text2)">${h.latitude||'—'}, ${h.longitude||'—'}</span></td>
     </tr>`).join('');
+
   document.getElementById('hotspot-table').innerHTML = rows
     ? `<table><thead><tr><th>Code</th><th>Name</th><th>City</th><th>Status</th><th>Coordinates</th></tr></thead><tbody>${rows}</tbody></table>`
-    : '<div class="empty">No hotspots registered</div>';
+    : `<div class="empty"><span class="empty-icon">📶</span><p>No hotspots registered yet.</p></div>`;
 }
 
 async function createVoucher() {
   const code    = document.getElementById('new-code').value.trim();
   const minutes = document.getElementById('new-minutes').value;
-  const amount  = parseFloat(document.getElementById('new-amount').value || 0);
+  const amount  = parseFloat(document.getElementById('new-amount').value||0);
   const payment = document.getElementById('new-payment').value;
-  if (!code || !minutes) return showToast('Code and minutes are required', 'error');
+  if (!code||!minutes) return showToast('Code and minutes are required', 'err');
+
   const r = await fetch('/admin/voucher', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ voucher_code: code, minutes: parseInt(minutes), amount: amount, payment_method: payment })
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({voucher_code:code, minutes:parseInt(minutes), amount, payment_method:payment})
   });
   const d = await r.json();
   if (d.success) {
-    showToast('Voucher created!', 'success');
-    document.getElementById('new-code').value    = '';
+    showToast('Voucher created successfully', 'ok');
+    document.getElementById('new-code').value = '';
     document.getElementById('new-minutes').value = '';
-    document.getElementById('new-amount').value  = '';
+    document.getElementById('new-amount').value = '';
     loadData();
-  } else {
-    showToast(d.message, 'error');
-  }
+  } else showToast(d.message, 'err');
 }
 
 async function deleteVoucher(code) {
   if (!confirm(`Delete voucher ${code}? This cannot be undone.`)) return;
-  const r = await fetch(`/admin/voucher/${code}`, { method: 'DELETE' });
+  const r = await fetch(`/admin/voucher/${code}`, {method:'DELETE'});
   const d = await r.json();
-  d.success ? (showToast('Voucher deleted', 'success'), loadData()) : showToast(d.message, 'error');
+  d.success ? (showToast('Voucher deleted','ok'), loadData()) : showToast(d.message,'err');
 }
 
 async function suspendVoucher(code) {
-  const r = await fetch(`/admin/voucher/${code}/suspend`, { method: 'POST' });
+  const r = await fetch(`/admin/voucher/${code}/suspend`, {method:'POST'});
   const d = await r.json();
-  d.success ? (showToast(`Voucher ${d.status}`, 'success'), loadData()) : showToast(d.message, 'error');
+  d.success ? (showToast(`Voucher ${d.status}`,'ok'), loadData()) : showToast(d.message,'err');
 }
 
 function showSection(name, el) {
@@ -496,21 +845,20 @@ function showSection(name, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('section-' + name).classList.add('active');
   el.classList.add('active');
-  const titles = { overview:'Overview', vouchers:'Vouchers', sessions:'Sessions', transactions:'Transactions', hotspots:'Hotspots' };
-  document.getElementById('page-title').textContent = titles[name];
+  document.getElementById('topbar-title').textContent = TITLES[name];
+}
+
+async function adminLogout() {
+  if (!confirm('Sign out of the admin dashboard?')) return;
+  await fetch('/admin/logout', {method:'POST'});
+  window.location.href = '/admin/login';
 }
 
 function showToast(msg, type) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast ' + (type||'success') + ' show';
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-async function adminLogout() {
-  if (!confirm("Logout from admin?")) return;
-  await fetch("/admin/logout", { method: "POST" });
-  window.location.href = "/admin/login";
+  t.textContent = (type === 'ok' ? '✓  ' : '✕  ') + msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3200);
 }
 
 loadData();
