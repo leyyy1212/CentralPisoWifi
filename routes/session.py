@@ -1,37 +1,29 @@
 from flask import Blueprint, request, jsonify
 from services.voucher_service import get_voucher_by_code, is_voucher_valid, deduct_minutes
 from services.session_service import get_active_session, end_session
+from middleware import require_api_key
 
 session_bp = Blueprint("session", __name__)
 
 
 @session_bp.route("/logout", methods=["POST"])
+@require_api_key
 def logout():
     data = request.get_json()
-
     if not data or "session_id" not in data:
         return jsonify({"success": False, "message": "session_id is required"}), 400
 
-    session_id = data["session_id"]
-
-    success = end_session(session_id)
+    success = end_session(data["session_id"])
     if not success:
         return jsonify({"success": False, "message": "Session not found or already ended"}), 404
 
-    return jsonify({
-        "success": True,
-        "message": "Session ended successfully"
-    }), 200
+    return jsonify({"success": True, "message": "Session ended successfully"}), 200
 
 
 @session_bp.route("/heartbeat", methods=["POST"])
+@require_api_key
 def heartbeat():
-    """
-    Called every minute by the hotspot client.
-    Deducts 1 minute from the voucher and confirms session is still valid.
-    """
     data = request.get_json()
-
     if not data or "session_id" not in data:
         return jsonify({"success": False, "message": "session_id is required"}), 400
     if "voucher_code" not in data:
@@ -40,24 +32,16 @@ def heartbeat():
     session_id   = data["session_id"]
     voucher_code = data["voucher_code"].strip().upper()
 
-    # Check voucher still has time
     voucher = get_voucher_by_code(voucher_code)
     if not voucher:
         return jsonify({"success": False, "message": "Voucher not found"}), 404
 
     valid, reason = is_voucher_valid(voucher)
     if not valid:
-        # Auto-end session when voucher runs out
         end_session(session_id)
-        return jsonify({
-            "success": False,
-            "message": reason,
-            "action": "disconnect"
-        }), 403
+        return jsonify({"success": False, "message": reason, "action": "disconnect"}), 403
 
-    # Deduct 1 minute
     deduct_minutes(voucher_code, 1)
-
     remaining = voucher["remaining_minutes"] - 1
 
     return jsonify({
@@ -68,12 +52,9 @@ def heartbeat():
 
 
 @session_bp.route("/consume", methods=["POST"])
+@require_api_key
 def consume():
-    """
-    Manually deduct a specific number of minutes from a voucher.
-    """
     data = request.get_json()
-
     if not data or "voucher_code" not in data:
         return jsonify({"success": False, "message": "voucher_code is required"}), 400
     if "minutes" not in data:

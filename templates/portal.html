@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central PisoWiFi — Connect</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+  :root {
+    --bg:        #070b14;
+    --surface:   #0e1420;
+    --surface2:  #151c2e;
+    --border:    #1e2a42;
+    --accent:    #3b82f6;
+    --accent-glow: rgba(59,130,246,0.3);
+    --green:     #10b981;
+    --green-glow: rgba(16,185,129,0.25);
+    --danger:    #ef4444;
+    --warn:      #f59e0b;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --mono:      'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(16,185,129,0.04) 0%, transparent 60%);
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 44px 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent);
+  }
+
+  /* ── Logo ── */
+  .logo {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .logo-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    border-radius: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(59,130,246,0.35);
+  }
+
+  .logo h1 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── Views ── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── Input ── */
+  .input-wrap {
+    position: relative;
+    margin-bottom: 14px;
+  }
+
+  .input-wrap input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    padding: 16px 18px;
+    border-radius: 14px;
+    font-size: 20px;
+    font-family: var(--mono);
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    outline: none;
+    transition: all .2s;
+  }
+
+  .input-wrap input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: #111827;
+  }
+
+  .input-wrap input::placeholder {
+    color: var(--muted);
+    font-size: 14px;
+    letter-spacing: .05em;
+    font-weight: 400;
+  }
+
+  /* ── Button ── */
+  .btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all .2s;
+    letter-spacing: .02em;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(59,130,246,0.35);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.45); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--danger);
+    border: 1.5px solid rgba(239,68,68,0.3);
+    margin-top: 12px;
+  }
+  .btn-outline:hover { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+
+  /* ── Error ── */
+  .error-box {
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--danger);
+    margin-top: 12px;
+    display: none;
+    text-align: center;
+  }
+  .error-box.show { display: block; }
+
+  /* ── Connected View ── */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 28px;
+    padding: 8px 16px;
+    background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.2);
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--green);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; box-shadow: 0 0 8px var(--green); }
+    50% { opacity: .6; box-shadow: 0 0 4px var(--green); }
+  }
+
+  .time-block {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .time-number {
+    font-family: var(--mono);
+    font-size: 72px;
+    font-weight: 700;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--green), #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px var(--green-glow));
+  }
+
+  .time-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin-top: 6px;
+  }
+
+  .time-bar-wrap {
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    margin: 20px 0 28px;
+    overflow: hidden;
+  }
+
+  .time-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), #34d399);
+    border-radius: 99px;
+    transition: width 1s linear;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .info-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .info-card .label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 4px;
+  }
+
+  .info-card .value {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    word-break: break-all;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── Loading spinner ── */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- ── Login View ── -->
+  <div class="view active" id="view-login">
+    <div class="logo">
+      <div class="logo-icon">📶</div>
+      <h1>Central PisoWiFi</h1>
+      <p>Enter your voucher code to get online</p>
+    </div>
+
+    <div class="input-wrap">
+      <input id="voucher-input" type="text" placeholder="Enter voucher code"
+        maxlength="20" autocomplete="off" autocorrect="off" spellcheck="false"
+        onkeydown="if(event.key==='Enter') connect()">
+    </div>
+
+    <button class="btn btn-primary" onclick="connect()" id="connect-btn">
+      Connect to Internet
+    </button>
+
+    <div class="error-box" id="error-box"></div>
+  </div>
+
+  <!-- ── Connected View ── -->
+  <div class="view" id="view-connected">
+    <div class="logo">
+      <div class="logo-icon">✅</div>
+      <h1>You're Online!</h1>
+      <p>Enjoy your internet connection</p>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-dot"></div>
+      Connected
+    </div>
+
+    <div class="time-block">
+      <div class="time-number" id="time-display">--</div>
+      <div class="time-label">minutes remaining</div>
+    </div>
+
+    <div class="time-bar-wrap">
+      <div class="time-bar" id="time-bar" style="width:100%"></div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="label">Voucher</div>
+        <div class="value" id="info-voucher">—</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Session ID</div>
+        <div class="value" id="info-session">—</div>
+      </div>
+    </div>
+
+    <button class="btn btn-outline" onclick="disconnect()">
+      Disconnect
+    </button>
+  </div>
+
+</div>
+
+<div class="footer">Central PisoWiFi &copy; 2025 · Powered by Flask &amp; Supabase</div>
+
+<script>
+  let sessionId    = null;
+  let voucherCode  = null;
+  let remaining    = 0;
+  let totalMinutes = 0;
+  let heartbeatTimer = null;
+
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('error-box');
+    box.textContent = msg;
+    box.classList.add('show');
+  }
+
+  function clearError() {
+    document.getElementById('error-box').classList.remove('show');
+  }
+
+  async function connect() {
+    clearError();
+    const code = document.getElementById('voucher-input').value.trim().toUpperCase();
+    if (!code) return showError('Please enter your voucher code.');
+
+    const btn = document.getElementById('connect-btn');
+    btn.innerHTML = '<span class="spinner"></span> Connecting...';
+    btn.disabled = true;
+
+    try {
+      const r = await fetch('/portal/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voucher_code: code, device_mac: 'browser-client' })
+      });
+      const d = await r.json();
+
+      if (d.success) {
+        sessionId    = d.session_id;
+        voucherCode  = d.voucher_code;
+        remaining    = d.remaining_minutes;
+        totalMinutes = d.remaining_minutes;
+        showConnected();
+      } else {
+        showError(d.message || 'Connection failed. Please try again.');
+        btn.innerHTML = 'Connect to Internet';
+        btn.disabled = false;
+      }
+    } catch(e) {
+      showError('Cannot reach server. Please try again.');
+      btn.innerHTML = 'Connect to Internet';
+      btn.disabled = false;
+    }
+  }
+
+  function showConnected() {
+    updateTimeDisplay(remaining);
+    document.getElementById('info-voucher').textContent  = voucherCode;
+    document.getElementById('info-session').textContent  = sessionId.slice(0, 8) + '...';
+    showView('connected');
+    heartbeatTimer = setInterval(sendHeartbeat, 60000);
+  }
+
+  async function sendHeartbeat() {
+    try {
+      const r = await fetch('/portal/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, voucher_code: voucherCode })
+      });
+      const d = await r.json();
+
+      if (d.action === 'disconnect' || !d.success) {
+        clearInterval(heartbeatTimer);
+        timeExpired();
+      } else {
+        remaining = d.remaining_minutes;
+        updateTimeDisplay(remaining);
+      }
+    } catch(e) {}
+  }
+
+  function updateTimeDisplay(mins) {
+    document.getElementById('time-display').textContent = mins;
+    const pct = totalMinutes > 0 ? (mins / totalMinutes * 100) : 0;
+    document.getElementById('time-bar').style.width = pct + '%';
+  }
+
+  function timeExpired() {
+    document.getElementById('view-connected').querySelector('.logo-icon').textContent = '⏰';
+    document.getElementById('view-connected').querySelector('h1').textContent = 'Time Expired';
+    document.getElementById('view-connected').querySelector('p').textContent  = 'Your session has ended. Buy a new voucher to continue.';
+    setTimeout(() => resetPortal(), 4000);
+  }
+
+  async function disconnect() {
+    if (!confirm('Are you sure you want to disconnect?')) return;
+    clearInterval(heartbeatTimer);
+    try {
+      await fetch('/portal/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+    } catch(e) {}
+    resetPortal();
+  }
+
+  function resetPortal() {
+    sessionId = voucherCode = null;
+    remaining = totalMinutes = 0;
+    document.getElementById('voucher-input').value = '';
+    document.getElementById('connect-btn').innerHTML = 'Connect to Internet';
+    document.getElementById('connect-btn').disabled = false;
+    showView('login');
+  }
+</script>
+</body>
+</html>

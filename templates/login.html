@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PisoWiFi — Admin Login</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600&display=swap');
+
+  :root {
+    --bg:      #0f1117;
+    --surface: #1a1d27;
+    --border:  #2a2d3a;
+    --accent:  #3b82f6;
+    --danger:  #ef4444;
+    --text:    #e2e8f0;
+    --muted:   #64748b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .logo { text-align: center; margin-bottom: 32px; }
+  .logo .icon { font-size: 40px; margin-bottom: 10px; }
+  .logo h1 { font-size: 20px; font-weight: 700; }
+  .logo p  { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 6px;
+  }
+  .form-group input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .form-group input:focus { border-color: var(--accent); }
+
+  .btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    margin-top: 8px;
+    transition: opacity .15s;
+  }
+  .btn:hover { opacity: .85; }
+
+  .error {
+    background: rgba(239,68,68,.1);
+    border: 1px solid rgba(239,68,68,.3);
+    color: var(--danger);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .error.show { display: block; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="icon">🔐</div>
+    <h1>Admin Login</h1>
+    <p>Central PisoWiFi Management</p>
+  </div>
+
+  <div class="error" id="error-msg"></div>
+
+  <div class="form-group">
+    <label>Username</label>
+    <input id="username" type="text" placeholder="Enter username" autofocus
+      onkeydown="if(event.key==='Enter') login()">
+  </div>
+  <div class="form-group">
+    <label>Password</label>
+    <input id="password" type="password" placeholder="Enter password"
+      onkeydown="if(event.key==='Enter') login()">
+  </div>
+
+  <button class="btn" onclick="login()" id="login-btn">Login</button>
+</div>
+
+<script>
+async function login() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+
+  if (!username || !password) return showError('Username and password are required.');
+
+  document.getElementById('login-btn').textContent = 'Logging in...';
+  document.getElementById('login-btn').disabled = true;
+
+  try {
+    const r = await fetch('/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const d = await r.json();
+
+    if (d.success) {
+      window.location.href = '/admin';
+    } else {
+      showError(d.message || 'Login failed.');
+      resetBtn();
+    }
+  } catch(e) {
+    showError('Cannot reach server.');
+    resetBtn();
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function resetBtn() {
+  document.getElementById('login-btn').textContent = 'Login';
+  document.getElementById('login-btn').disabled = false;
+}
+</script>
+</body>
+</html>

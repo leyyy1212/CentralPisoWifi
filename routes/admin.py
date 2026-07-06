@@ -1,18 +1,19 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, session, redirect, url_for
 from config import supabase
+from middleware import require_admin
 
 admin_bp = Blueprint("admin", __name__)
 
 
 @admin_bp.route("/admin")
+@require_admin
 def admin_dashboard():
-    """Serve the admin dashboard UI."""
     return render_template("admin.html")
 
 
 @admin_bp.route("/dashboard", methods=["GET"])
+@require_admin
 def dashboard():
-    """Return all dashboard data as JSON."""
     vouchers     = supabase.table("vouchers").select("*").order("created_at", desc=True).execute()
     sessions     = supabase.table("sessions").select("*").order("login_time", desc=True).execute()
     transactions = supabase.table("transactions").select("*").order("created_at", desc=True).execute()
@@ -45,14 +46,16 @@ def dashboard():
 
 
 @admin_bp.route("/admin/voucher", methods=["POST"])
+@require_admin
 def create_voucher():
-    """Create a new voucher from the admin panel."""
     data = request.get_json()
     if not data or "voucher_code" not in data or "minutes" not in data:
         return jsonify({"success": False, "message": "voucher_code and minutes are required"}), 400
 
-    voucher_code = data["voucher_code"].strip().upper()
-    minutes      = int(data["minutes"])
+    voucher_code   = data["voucher_code"].strip().upper()
+    minutes        = int(data["minutes"])
+    amount         = float(data.get("amount", 0))
+    payment_method = data.get("payment_method", "cash").strip().lower()
 
     existing = supabase.table("vouchers").select("id").eq("voucher_code", voucher_code).execute()
     if existing.data:
@@ -65,19 +68,27 @@ def create_voucher():
         "status": "active"
     }).execute()
 
+    if amount > 0:
+        supabase.table("transactions").insert({
+            "voucher_code": voucher_code,
+            "amount": amount,
+            "minutes": minutes,
+            "payment_method": payment_method
+        }).execute()
+
     return jsonify({"success": True, "voucher": result.data[0]}), 201
 
 
 @admin_bp.route("/admin/voucher/<voucher_code>", methods=["DELETE"])
+@require_admin
 def delete_voucher(voucher_code):
-    """Delete a voucher."""
     supabase.table("vouchers").delete().eq("voucher_code", voucher_code.upper()).execute()
     return jsonify({"success": True, "message": f"Voucher {voucher_code} deleted"}), 200
 
 
 @admin_bp.route("/admin/voucher/<voucher_code>/suspend", methods=["POST"])
+@require_admin
 def suspend_voucher(voucher_code):
-    """Suspend or reactivate a voucher."""
     voucher = supabase.table("vouchers").select("status").eq("voucher_code", voucher_code.upper()).execute()
     if not voucher.data:
         return jsonify({"success": False, "message": "Voucher not found"}), 404
@@ -87,3 +98,9 @@ def suspend_voucher(voucher_code):
 
     supabase.table("vouchers").update({"status": new_status}).eq("voucher_code", voucher_code.upper()).execute()
     return jsonify({"success": True, "status": new_status}), 200
+
+
+@admin_bp.route("/admin/logout", methods=["GET"])
+def logout():
+    session.clear()
+    return redirect(url_for("auth.admin_login_page"))

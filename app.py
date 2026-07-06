@@ -1,3 +1,4 @@
+import os
 from flask import Flask, jsonify
 from routes.auth import auth_bp
 from routes.voucher import voucher_bp
@@ -6,6 +7,9 @@ from routes.hotspot import hotspot_bp
 from routes.admin import admin_bp
 
 app = Flask(__name__)
+
+# Secret key for session cookies (change this to something random in production)
+app.secret_key = os.environ.get("SECRET_KEY", "pisowifi-secret-change-me-in-production")
 
 # ── Register Blueprints ──────────────────────────────────────
 app.register_blueprint(auth_bp)
@@ -30,11 +34,9 @@ def home():
 def not_found(e):
     return jsonify({"success": False, "message": "Route not found"}), 404
 
-
 @app.errorhandler(405)
 def method_not_allowed(e):
     return jsonify({"success": False, "message": "Method not allowed"}), 405
-
 
 @app.errorhandler(500)
 def server_error(e):
