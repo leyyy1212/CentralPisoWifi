@@ -544,6 +544,36 @@ body {
 </div>
 
 <script>
+
+function getFingerprint() {
+  // Generate a stable browser fingerprint from device characteristics
+  const raw = [
+    navigator.userAgent,
+    navigator.language,
+    screen.width + 'x' + screen.height,
+    screen.colorDepth,
+    new Date().getTimezoneOffset(),
+    navigator.hardwareConcurrency || 0,
+    navigator.platform || ''
+  ].join('|');
+
+  // Simple hash function
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const chr = raw.charCodeAt(i);
+    hash = ((hash << 5) - hash) + chr;
+    hash |= 0;
+  }
+
+  // Store in sessionStorage so it stays consistent per tab
+  const key = 'cpw_fp';
+  if (!sessionStorage.getItem(key)) {
+    sessionStorage.setItem(key, 'fp-' + Math.abs(hash).toString(16));
+  }
+  return sessionStorage.getItem(key);
+}
+
+
 let sessionId = null, voucherCode = null, remaining = 0, totalMins = 0;
 let hbTimer = null;
 
@@ -582,7 +612,7 @@ async function connect() {
     const r = await fetch('/portal/login', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({voucher_code: code, device_mac: 'browser-client'})
+      body: JSON.stringify({voucher_code: code, device_mac: getFingerprint()})
     });
     const d = await r.json();
 

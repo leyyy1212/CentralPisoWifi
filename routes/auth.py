@@ -86,7 +86,7 @@ def portal_login():
     data         = request.get_json()
     voucher_code = data.get("voucher_code", "").strip().upper()
     hotspot_code = data.get("hotspot_code", "PORTAL").strip().upper()
-    device_mac   = data.get("device_mac", "browser-client").strip().lower()
+    device_fp    = data.get("device_mac", "browser-client").strip().lower()
 
     if not voucher_code:
         return jsonify({"success": False, "message": "Voucher code is required"}), 400
@@ -99,10 +99,27 @@ def portal_login():
     if not valid:
         return jsonify({"success": False, "message": reason}), 403
 
-    # Auto-switch: end any existing sessions
-    get_any_active_session(voucher_code) and end_all_active_sessions(voucher_code)
+    # Check for existing active session
+    existing = get_any_active_session(voucher_code)
 
-    session_record = create_session(voucher_code, hotspot_code, device_mac)
+    if existing:
+        existing_fp = existing.get("device_mac", "")
+
+        # Same device reconnecting — just reuse or replace session
+        if existing_fp == device_fp:
+            end_all_active_sessions(voucher_code)
+        else:
+            # Different device — check cooldown (abuse prevention)
+            if check_cooldown(voucher_code, hotspot_code, COOLDOWN_SECONDS):
+                return jsonify({
+                    "success": False,
+                    "message": f"This voucher was just used on another device. Please wait {COOLDOWN_SECONDS} seconds before connecting."
+                }), 429
+
+            # Auto-switch: end the other device's session
+            end_all_active_sessions(voucher_code)
+
+    session_record = create_session(voucher_code, hotspot_code, device_fp)
     if not session_record:
         return jsonify({"success": False, "message": "Failed to create session"}), 500
 
