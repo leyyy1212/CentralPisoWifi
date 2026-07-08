@@ -223,3 +223,39 @@ def admin_login():
 def admin_logout():
     session.clear()
     return jsonify({"success": True, "message": "Logged out"}), 200
+
+
+@auth_bp.route("/portal/verify", methods=["POST"])
+def portal_verify():
+    """
+    Verify a session is still active without deducting time.
+    Used on page load/refresh to restore session state.
+    """
+    data       = request.get_json()
+    session_id = data.get("session_id")
+    voucher_code = data.get("voucher_code", "").strip().upper()
+
+    if not session_id or not voucher_code:
+        return jsonify({"success": False, "message": "session_id and voucher_code required"}), 400
+
+    from services.session_service import get_session_by_id
+    from services.voucher_service import get_voucher_by_code
+
+    session_record = get_session_by_id(session_id)
+
+    if not session_record or not session_record.get("active"):
+        return jsonify({
+            "success": False,
+            "action": "disconnect",
+            "message": "Session is no longer active."
+        }), 403
+
+    voucher = get_voucher_by_code(voucher_code)
+    if not voucher:
+        return jsonify({"success": False, "action": "disconnect"}), 404
+
+    return jsonify({
+        "success": True,
+        "remaining_minutes": voucher["remaining_minutes"],
+        "action": "continue"
+    }), 200

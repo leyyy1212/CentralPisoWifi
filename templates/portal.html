@@ -434,134 +434,118 @@ body {
 'use strict';
 
 // ── Dev Tools Protection ──────────────────────────────────────
-// Disable right-click
-document.addEventListener('contextmenu', e => e.preventDefault());
-
-// Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S
+document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
 document.addEventListener('keydown', function(e) {
-  if (
-    e.key === 'F12' ||
-    (e.ctrlKey && e.shiftKey && ['I','J','C','K'].includes(e.key.toUpperCase())) ||
-    (e.ctrlKey && ['U','S','A'].includes(e.key.toUpperCase()))
-  ) {
-    e.preventDefault();
-    e.stopPropagation();
-    return false;
+  if (e.key==='F12' ||
+    (e.ctrlKey&&e.shiftKey&&['I','J','C','K'].includes(e.key.toUpperCase())) ||
+    (e.ctrlKey&&['U','S'].includes(e.key.toUpperCase()))) {
+    e.preventDefault(); e.stopPropagation(); return false;
   }
 });
-
-// Detect devtools open via size difference
-let devtoolsOpen = false;
-const threshold = 160;
-setInterval(() => {
-  const widthDiff  = window.outerWidth  - window.innerWidth  > threshold;
-  const heightDiff = window.outerHeight - window.innerHeight > threshold;
-  if ((widthDiff || heightDiff) && !devtoolsOpen) {
-    devtoolsOpen = true;
+setInterval(function(){
+  var w = window.outerWidth  - window.innerWidth  > 160;
+  var h = window.outerHeight - window.innerHeight > 160;
+  if (w || h) {
     document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#06090f;color:#e74c3c;font-family:sans-serif;font-size:18px;font-weight:700;">⚠ Access Denied</div>';
   }
 }, 1000);
 
 // ── State ─────────────────────────────────────────────────────
-var _s = null, _v = null, _fp = null;
-var _total = 0, _rem = 0, _start = null;
-var _ct = null, _ht = null, _pt = null;
-var SK = 'cpw_s2';
+var _s=null,_v=null,_fp=null,_total=0,_rem=0,_start=null;
+var _ct=null,_ht=null,_pt=null;
+var SK='cpw_s3';
 
 // ── Fingerprint ───────────────────────────────────────────────
-function fp() {
-  if (_fp) return _fp;
-  var k = 'cpw_fp';
-  if (localStorage.getItem(k)) { _fp = localStorage.getItem(k); return _fp; }
-  var raw = [navigator.userAgent, navigator.language,
-    screen.width+'x'+screen.height, screen.colorDepth,
+function getFp(){
+  if(_fp) return _fp;
+  var k='cpw_fp';
+  if(localStorage.getItem(k)){_fp=localStorage.getItem(k);return _fp;}
+  var raw=[navigator.userAgent,navigator.language,
+    screen.width+'x'+screen.height,screen.colorDepth,
     new Date().getTimezoneOffset(),
-    navigator.hardwareConcurrency||0, navigator.platform||''
-  ].join('|');
-  var h = 0;
-  for (var i = 0; i < raw.length; i++) { h = ((h<<5)-h)+raw.charCodeAt(i); h|=0; }
-  _fp = 'fp-'+Math.abs(h).toString(16);
-  localStorage.setItem(k, _fp);
+    navigator.hardwareConcurrency||0,navigator.platform||''].join('|');
+  var h=0;
+  for(var i=0;i<raw.length;i++){h=((h<<5)-h)+raw.charCodeAt(i);h|=0;}
+  _fp='fp-'+Math.abs(h).toString(16);
+  localStorage.setItem(k,_fp);
   return _fp;
 }
 
-// ── Local storage ─────────────────────────────────────────────
-function save() {
-  localStorage.setItem(SK, JSON.stringify({
-    s:_s, v:_v, total:_total, rem:_rem,
+// ── Storage ───────────────────────────────────────────────────
+function save(){
+  localStorage.setItem(SK,JSON.stringify({
+    s:_s,v:_v,total:_total,rem:_rem,
     start:_start?_start.toISOString():null,
     at:Date.now()
   }));
 }
 
-function loadLocal() {
-  try {
-    var raw = localStorage.getItem(SK);
-    if (!raw) return false;
-    var d = JSON.parse(raw);
-    if (!d.s || !d.v) return false;
-    var elapsed = Math.floor((Date.now()-d.at)/1000);
-    var adj = (d.rem||0) - elapsed;
-    if (adj <= 0) { clearLocal(); return false; }
-    _s = d.s; _v = d.v; _total = d.total||adj; _rem = adj;
-    _start = d.start ? new Date(d.start) : new Date();
+function loadLocal(){
+  try{
+    var raw=localStorage.getItem(SK);
+    if(!raw) return false;
+    var d=JSON.parse(raw);
+    if(!d.s||!d.v) return false;
+    // Calculate elapsed since saved
+    var elapsed=Math.floor((Date.now()-d.at)/1000);
+    var adj=(d.rem||0)-elapsed;
+    if(adj<=0){clearLocal();return false;}
+    _s=d.s;_v=d.v;_total=d.total||adj;_rem=adj;
+    _start=d.start?new Date(d.start):new Date();
     return true;
-  } catch(e) { clearLocal(); return false; }
+  }catch(e){clearLocal();return false;}
 }
 
-function clearLocal() { localStorage.removeItem(SK); }
+function clearLocal(){localStorage.removeItem(SK);}
 
 // ── Views ─────────────────────────────────────────────────────
-function show(name) {
+function show(name){
   document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
   document.getElementById('view-'+name).classList.add('active');
 }
 
-function clearAlerts() {
+function clearAlerts(){
   document.getElementById('error-box').classList.remove('show');
   document.getElementById('warn-box').classList.remove('show');
 }
 
-function showError(msg) {
-  document.getElementById('error-text').textContent = msg;
+function showError(msg){
+  document.getElementById('error-text').textContent=msg;
   document.getElementById('error-box').classList.add('show');
   document.getElementById('warn-box').classList.remove('show');
 }
 
-function showWarn(msg) {
-  document.getElementById('warn-text').textContent = msg;
+function showWarn(msg){
+  document.getElementById('warn-text').textContent=msg;
   document.getElementById('warn-box').classList.add('show');
   document.getElementById('error-box').classList.remove('show');
 }
 
 // ── Connect ───────────────────────────────────────────────────
-window.connect = function() {
+window.connect=function(){
   clearAlerts();
-  var code = document.getElementById('voucher-input').value.trim().toUpperCase();
-  if (!code) return showError('Please enter your voucher code to continue.');
+  var code=document.getElementById('voucher-input').value.trim().toUpperCase();
+  if(!code) return showError('Please enter your voucher code to continue.');
 
-  var btn = document.getElementById('connect-btn');
-  btn.innerHTML = '<span class="spinner"></span> Connecting...';
-  btn.disabled = true;
+  var btn=document.getElementById('connect-btn');
+  btn.innerHTML='<span class="spinner"></span> Connecting...';
+  btn.disabled=true;
 
-  fetch('/portal/login', {
+  fetch('/portal/login',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({voucher_code:code, device_mac:fp()})
-  }).then(function(r){ return r.json().then(function(d){return{r:r,d:d};}); })
+    body:JSON.stringify({voucher_code:code,device_mac:getFp()})
+  }).then(function(r){return r.json().then(function(d){return{r:r,d:d};});})
   .then(function(rd){
-    var r=rd.r, d=rd.d;
-    if (d.success) {
-      _s = d.session_id;
-      _v = d.voucher_code;
-      // Server gives remaining_minutes — this is the accurate remaining time
-      // regardless of which device is connecting
-      _total = d.remaining_minutes * 60;
-      _rem   = d.remaining_minutes * 60;
-      _start = new Date();
+    var r=rd.r,d=rd.d;
+    if(d.success){
+      _s=d.session_id; _v=d.voucher_code;
+      _total=d.remaining_minutes*60;
+      _rem=d.remaining_minutes*60;
+      _start=new Date();
       save();
       startSession();
-    } else if (r.status === 429) {
+    } else if(r.status===429){
       showWarn(d.message);
       btn.innerHTML='Connect to Internet'; btn.disabled=false;
     } else {
@@ -574,162 +558,156 @@ window.connect = function() {
   });
 };
 
-// ── Start session UI ──────────────────────────────────────────
-function startSession() {
-  document.getElementById('info-voucher').textContent = _v;
-  document.getElementById('info-device').textContent  = fp().slice(0,10)+'…';
-  document.getElementById('info-session').textContent = _s.slice(0,8)+'…';
-  document.getElementById('info-started').textContent = _start
-    ? _start.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}) : '—';
+// ── Start session ─────────────────────────────────────────────
+function startSession(){
+  document.getElementById('info-voucher').textContent=_v;
+  document.getElementById('info-device').textContent=getFp().slice(0,10)+'…';
+  document.getElementById('info-session').textContent=_s.slice(0,8)+'…';
+  document.getElementById('info-started').textContent=_start
+    ?_start.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}):'—';
   document.getElementById('low-time-warn').classList.remove('show');
 
   tick();
   show('connected');
   stopTimers();
 
-  _ct = setInterval(function(){
-    if (_rem > 0) {
-      _rem--;
-      tick();
-      if (_rem % 10 === 0) save();
-    }
-  }, 1000);
+  // Countdown every second
+  _ct=setInterval(function(){
+    if(_rem>0){_rem--;tick();if(_rem%10===0)save();}
+  },1000);
 
-  // Heartbeat every 60s — server-side deduction only
-  _ht = setInterval(heartbeat, 60000);
+  // Heartbeat every 60s — deducts server-side only, no time sync
+  _ht=setInterval(heartbeat,60000);
 
-  // Poll every 15s — detect kick from other device
-  _pt = setInterval(poll, 15000);
+  // Poll every 15s — detect kick only, use verify endpoint
+  _pt=setInterval(pollKick,15000);
 }
 
-// ── Clock ─────────────────────────────────────────────────────
-function tick() {
-  var h = Math.floor(_rem/3600);
-  var m = Math.floor((_rem%3600)/60);
-  var s = _rem%60;
+// ── Tick ──────────────────────────────────────────────────────
+function tick(){
+  var h=Math.floor(_rem/3600);
+  var m=Math.floor((_rem%3600)/60);
+  var s=_rem%60;
 
-  var disp = document.getElementById('clock-display');
-  var fill = document.getElementById('progress-fill');
-  var warn = document.getElementById('low-time-warn');
+  var disp=document.getElementById('clock-display');
+  var fill=document.getElementById('progress-fill');
+  var warn=document.getElementById('low-time-warn');
 
-  disp.textContent = pad(h)+':'+pad(m)+':'+pad(s);
+  disp.textContent=pad(h)+':'+pad(m)+':'+pad(s);
 
-  // Accurate bar: remaining vs total time when voucher was first bought
-  var pct = _total > 0 ? (_rem/_total*100) : 0;
-  fill.style.width = pct+'%';
+  // Bar = current remaining / total minutes when voucher was bought
+  var pct=_total>0?(_rem/_total*100):0;
+  fill.style.width=pct+'%';
 
   disp.classList.remove('warning','critical');
   fill.classList.remove('warning','critical');
 
-  var mins = _rem/60;
-  if (mins <= 1) {
-    disp.classList.add('critical'); fill.classList.add('critical');
-  } else if (mins <= 5) {
-    disp.classList.add('warning'); fill.classList.add('warning');
+  var mins=_rem/60;
+  if(mins<=1){
+    disp.classList.add('critical');fill.classList.add('critical');
+  } else if(mins<=5){
+    disp.classList.add('warning');fill.classList.add('warning');
     warn.classList.add('show');
   }
 
-  if (_rem <= 0) { stopTimers(); clearLocal(); expired(); }
+  if(_rem<=0){stopTimers();clearLocal();expired();}
 }
 
-function pad(n){ return String(n).padStart(2,'0'); }
+function pad(n){return String(n).padStart(2,'0');}
 
-// ── Heartbeat ─────────────────────────────────────────────────
-function heartbeat() {
-  if (!_s||!_v) return;
+// ── Heartbeat — deducts time, no display sync ─────────────────
+function heartbeat(){
+  if(!_s||!_v) return;
   fetch('/portal/heartbeat',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({session_id:_s,voucher_code:_v})
   }).then(function(r){return r.json();})
   .then(function(d){
-    if (!d.success||d.action==='disconnect') {
-      stopTimers(); clearLocal();
-      if ((d.message||'').toLowerCase().includes('another device')) {
+    if(!d.success||d.action==='disconnect'){
+      stopTimers();clearLocal();
+      if((d.message||'').toLowerCase().includes('another device')){
         kicked(d.message);
-      } else { expired(); }
+      } else {expired();}
     }
-    // Do NOT sync time from heartbeat — avoids display jump
+    // No time sync here — prevents display jump
   }).catch(function(){});
 }
 
-// ── Poll for kick ─────────────────────────────────────────────
-function poll() {
-  if (!_s||!_v) return;
-  fetch('/portal/heartbeat',{
+// ── Poll for kick — uses verify, no time deduction ────────────
+function pollKick(){
+  if(!_s||!_v) return;
+  fetch('/portal/verify',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({session_id:_s,voucher_code:_v})
   }).then(function(r){return r.json();})
   .then(function(d){
-    if (!d.success&&d.action==='disconnect') {
-      stopTimers(); clearLocal();
-      if ((d.message||'').toLowerCase().includes('another device')) {
-        kicked(d.message);
-      } else { expired(); }
+    if(!d.success&&d.action==='disconnect'){
+      stopTimers();clearLocal();
+      kicked('Your session was ended because another device connected using the same voucher.');
     }
   }).catch(function(){});
 }
 
 // ── Disconnect ────────────────────────────────────────────────
-window.disconnect = function() {
-  if (!confirm('End your session and disconnect from the internet?')) return;
-  stopTimers(); clearLocal();
+window.disconnect=function(){
+  if(!confirm('End your session and disconnect from the internet?')) return;
+  stopTimers();clearLocal();
   fetch('/portal/logout',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({session_id:_s})
   }).catch(function(){});
-  _s=_v=null; _rem=_total=0;
-  show('login'); resetForm();
+  _s=_v=null;_rem=_total=0;
+  show('login');resetForm();
 };
 
 // ── End states ────────────────────────────────────────────────
-function kicked(reason) {
-  document.getElementById('kicked-reason').textContent =
+function kicked(reason){
+  document.getElementById('kicked-reason').textContent=
     reason||'Your session was ended because another device connected using the same voucher code.';
   show('kicked');
 }
 
-function expired() { show('expired'); }
+function expired(){show('expired');}
 
-function stopTimers() {
-  clearInterval(_ct); clearInterval(_ht); clearInterval(_pt);
+function stopTimers(){
+  clearInterval(_ct);clearInterval(_ht);clearInterval(_pt);
   _ct=_ht=_pt=null;
 }
 
-function resetForm() {
+function resetForm(){
   document.getElementById('voucher-input').value='';
   document.getElementById('connect-btn').innerHTML='Connect to Internet';
   document.getElementById('connect-btn').disabled=false;
   clearAlerts();
 }
 
-window.showView = show;
-window.resetForm = resetForm;
+window.showView=show;
+window.resetForm=resetForm;
 
 // ── Init ──────────────────────────────────────────────────────
-fp(); // generate fingerprint early
+getFp();
 
-if (loadLocal()) {
-  // Verify session still alive on server — get accurate remaining time
-  fetch('/portal/heartbeat',{
+if(loadLocal()){
+  // Use /portal/verify — does NOT deduct time, just checks if session alive
+  fetch('/portal/verify',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({session_id:_s,voucher_code:_v})
   }).then(function(r){return r.json();})
   .then(function(d){
-    if (d.success && d.action!=='disconnect') {
-      // Sync from server on restore — this is the ONE place we sync
-      // so the time is accurate when you come back
-      _rem   = d.remaining_minutes * 60;
-      _total = _total || _rem;
+    if(d.success&&d.action!=='disconnect'){
+      // Only sync time on restore — single source of truth from server
+      _rem=d.remaining_minutes*60;
+      _total=_total||_rem;
       startSession();
     } else {
-      clearLocal(); show('login');
+      clearLocal();show('login');
     }
   }).catch(function(){
-    // Server unreachable — use local time
+    // Server unreachable — restore from local storage time
     startSession();
   });
 } else {
