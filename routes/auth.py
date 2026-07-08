@@ -140,9 +140,28 @@ def portal_heartbeat():
     if not session_id or not voucher_code:
         return jsonify({"success": False, "message": "session_id and voucher_code required"}), 400
 
+    # Check if THIS specific session is still active
+    # If not, it means another device took over
+    from services.session_service import get_session_by_id
+    session_record = get_session_by_id(session_id)
+
+    if not session_record:
+        return jsonify({
+            "success": False,
+            "action": "disconnect",
+            "message": "Session not found."
+        }), 404
+
+    if not session_record.get("active"):
+        return jsonify({
+            "success": False,
+            "action": "disconnect",
+            "message": "Your session was ended because another device connected using the same voucher code."
+        }), 403
+
     voucher = get_voucher_by_code(voucher_code)
     if not voucher:
-        return jsonify({"success": False, "action": "disconnect"}), 404
+        return jsonify({"success": False, "action": "disconnect", "message": "Voucher not found."}), 404
 
     valid, reason = is_voucher_valid(voucher)
     if not valid:

@@ -115,3 +115,15 @@ def check_cooldown(voucher_code: str, new_hotspot_code: str, cooldown_seconds: i
             return True
 
     return False
+
+
+def get_session_by_id(session_id: str) -> dict | None:
+    """Fetch a single session by its ID."""
+    response = (
+        supabase
+        .table("sessions")
+        .select("*")
+        .eq("id", session_id)
+        .execute()
+    )
+    return response.data[0] if response.data else None
