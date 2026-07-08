@@ -432,13 +432,16 @@ body {
 <script>
 let sessionId = null, voucherCode = null;
 let totalSeconds = 0, remainingSeconds = 0, startedAt = null;
-let countdownTimer = null, heartbeatTimer = null;
+let countdownTimer = null, heartbeatTimer = null, pollTimer = null;
 let deviceFp = null;
+let lastHeartbeatSync = 0; // timestamp of last server sync
+
+const STORE_KEY = 'cpw_session';
 
 // ── Fingerprint ──────────────────────────────────────────────
 function getFingerprint() {
   const key = 'cpw_fp';
-  if (sessionStorage.getItem(key)) return sessionStorage.getItem(key);
+  if (localStorage.getItem(key)) return localStorage.getItem(key);
   const raw = [
     navigator.userAgent, navigator.language,
     screen.width + 'x' + screen.height,
@@ -453,8 +456,53 @@ function getFingerprint() {
     hash |= 0;
   }
   const fp = 'fp-' + Math.abs(hash).toString(16);
-  sessionStorage.setItem(key, fp);
+  localStorage.setItem(key, fp);
   return fp;
+}
+
+// ── Persist session to localStorage ─────────────────────────
+function saveSession() {
+  localStorage.setItem(STORE_KEY, JSON.stringify({
+    sessionId, voucherCode,
+    remainingSeconds, totalSeconds,
+    startedAt: startedAt ? startedAt.toISOString() : null,
+    savedAt: Date.now()
+  }));
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (!s.sessionId || !s.voucherCode) return false;
+
+    // Calculate elapsed time since we saved
+    const elapsedSeconds = Math.floor((Date.now() - s.savedAt) / 1000);
+    const adjusted = s.remainingSeconds - elapsedSeconds;
+
+    if (adjusted <= 0) {
+      clearSession();
+      return false;
+    }
+
+    sessionId        = s.sessionId;
+    voucherCode      = s.voucherCode;
+    totalSeconds     = s.totalSeconds;
+    remainingSeconds = adjusted;
+    startedAt        = s.startedAt ? new Date(s.startedAt) : new Date();
+    deviceFp         = getFingerprint();
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function clearSession() {
+  localStorage.removeItem(STORE_KEY);
+  sessionId = voucherCode = null;
+  remainingSeconds = totalSeconds = 0;
+  startedAt = null;
 }
 
 // ── View management ──────────────────────────────────────────
@@ -506,9 +554,10 @@ async function connect() {
       remainingSeconds = d.remaining_minutes * 60;
       totalSeconds     = d.remaining_minutes * 60;
       startedAt        = new Date();
+      lastHeartbeatSync = Date.now();
+      saveSession();
       showConnected();
     } else if (r.status === 429) {
-      // Cooldown warning
       showWarn(d.message);
       btn.innerHTML = 'Connect to Internet';
       btn.disabled = false;
@@ -527,7 +576,7 @@ async function connect() {
 // ── Show connected ───────────────────────────────────────────
 function showConnected() {
   document.getElementById('info-voucher').textContent  = voucherCode;
-  document.getElementById('info-device').textContent   = (deviceFp || '—').slice(0, 10) + '…';
+  document.getElementById('info-device').textContent   = (deviceFp || getFingerprint()).slice(0, 10) + '…';
   document.getElementById('info-session').textContent  = sessionId.slice(0, 8) + '…';
   document.getElementById('info-started').textContent  = startedAt
     ? startedAt.toLocaleTimeString('en-PH', {hour:'2-digit', minute:'2-digit'})
@@ -536,16 +585,22 @@ function showConnected() {
   updateClock();
   showView('connected');
 
-  // Live countdown every second
+  // Countdown every second
   countdownTimer = setInterval(() => {
     if (remainingSeconds > 0) {
       remainingSeconds--;
       updateClock();
+      // Save to localStorage every 10 seconds
+      if (remainingSeconds % 10 === 0) saveSession();
     }
   }, 1000);
 
-  // Heartbeat every 60 seconds
+  // Heartbeat every 60 seconds — DO NOT sync time from server
+  // to avoid jumps. Server is just for deducting minutes.
   heartbeatTimer = setInterval(sendHeartbeat, 60000);
+
+  // Poll for kick every 15 seconds
+  pollTimer = setInterval(pollSession, 15000);
 }
 
 // ── Clock ────────────────────────────────────────────────────
@@ -563,9 +618,7 @@ function updateClock() {
   const pct = totalSeconds > 0 ? (remainingSeconds / totalSeconds * 100) : 0;
   fill.style.width = pct + '%';
 
-  // Color states
   const mins = remainingSeconds / 60;
-
   display.classList.remove('warning', 'critical');
   fill.classList.remove('warning', 'critical');
 
@@ -578,9 +631,9 @@ function updateClock() {
     lowWarn.classList.add('show');
   }
 
-  // Auto-expire
   if (remainingSeconds <= 0) {
     stopTimers();
+    clearSession();
     sessionExpired();
   }
 }
@@ -599,25 +652,48 @@ async function sendHeartbeat() {
 
     if (!d.success || d.action === 'disconnect') {
       stopTimers();
-      // Check if it was kicked vs expired
+      clearSession();
       if (d.message && d.message.toLowerCase().includes('another device')) {
         sessionKicked(d.message);
       } else {
         sessionExpired();
       }
-    } else {
-      // Sync remaining time with server (source of truth)
-      remainingSeconds = d.remaining_minutes * 60;
     }
+    // NOTE: we do NOT sync remainingSeconds from server here
+    // The local countdown is the source of truth for the display
+    // Server only tracks when to cut off
   } catch(e) {
-    // Network hiccup — keep counting down locally, retry next heartbeat
+    // Network hiccup — keep going
   }
+}
+
+// ── Poll for kick ────────────────────────────────────────────
+async function pollSession() {
+  if (!sessionId || !voucherCode) return;
+  try {
+    const r = await fetch('/portal/heartbeat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({session_id: sessionId, voucher_code: voucherCode})
+    });
+    const d = await r.json();
+    if (!d.success && d.action === 'disconnect') {
+      stopTimers();
+      clearSession();
+      if (d.message && d.message.toLowerCase().includes('another device')) {
+        sessionKicked(d.message);
+      } else {
+        sessionExpired();
+      }
+    }
+  } catch(e) {}
 }
 
 // ── Disconnect ───────────────────────────────────────────────
 async function disconnect() {
-  if (!confirm('Are you sure you want to end your session and disconnect from the internet?')) return;
+  if (!confirm('Are you sure you want to end your session and disconnect?')) return;
   stopTimers();
+  clearSession();
   try {
     await fetch('/portal/logout', {
       method: 'POST',
@@ -634,24 +710,17 @@ function sessionKicked(reason) {
   document.getElementById('kicked-reason').textContent =
     reason || 'Your session was ended because another device connected using the same voucher code.';
   showView('kicked');
-  cleanupSession();
 }
 
 function sessionExpired() {
   showView('expired');
-  cleanupSession();
 }
 
 function stopTimers() {
   clearInterval(countdownTimer);
   clearInterval(heartbeatTimer);
-  countdownTimer = null;
-  heartbeatTimer = null;
-}
-
-function cleanupSession() {
-  sessionId = voucherCode = null;
-  remainingSeconds = totalSeconds = 0;
+  clearInterval(pollTimer);
+  countdownTimer = heartbeatTimer = pollTimer = null;
 }
 
 function resetForm() {
@@ -661,23 +730,13 @@ function resetForm() {
   clearAlerts();
 }
 
-// ── Poll for kicked sessions ─────────────────────────────────
-// Check every 15 seconds if our session is still alive
-setInterval(async () => {
-  if (!sessionId || !voucherCode) return;
-  try {
-    const r = await fetch('/portal/heartbeat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({session_id: sessionId, voucher_code: voucherCode})
-    });
-    const d = await r.json();
-    if (!d.success && d.action === 'disconnect') {
-      stopTimers();
-      sessionKicked();
-    }
-  } catch(e) {}
-}, 15000);
+// ── On page load: restore session if exists ──────────────────
+window.addEventListener('load', () => {
+  deviceFp = getFingerprint();
+  if (loadSession()) {
+    showConnected();
+  }
+});
 </script>
 </body>
 </html>
