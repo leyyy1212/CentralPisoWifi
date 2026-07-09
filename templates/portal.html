@@ -275,6 +275,14 @@ body {
   .clock-display { font-size: 48px; }
 }
 </style>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZT30LQ2MR5"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag("js", new Date());
+  gtag("config", "G-ZT30LQ2MR5");
+</script>
 </head>
 <body>
 
@@ -443,17 +451,18 @@ document.addEventListener('keydown', function(e) {
   }
 });
 setInterval(function(){
-  var w = window.outerWidth  - window.innerWidth  > 160;
-  var h = window.outerHeight - window.innerHeight > 160;
-  if (w || h) {
-    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#06090f;color:#e74c3c;font-family:sans-serif;font-size:18px;font-weight:700;">⚠ Access Denied</div>';
+  var w=window.outerWidth-window.innerWidth>160;
+  var h=window.outerHeight-window.innerHeight>160;
+  if(w||h){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#06090f;color:#e74c3c;font-family:sans-serif;font-size:18px;font-weight:700;">⚠ Access Denied</div>';
   }
-}, 1000);
+},1000);
 
 // ── State ─────────────────────────────────────────────────────
-var _s=null,_v=null,_fp=null,_total=0,_rem=0,_start=null;
+var _s=null,_v=null,_fp=null;
+var _total=0,_rem=0,_start=null;
 var _ct=null,_ht=null,_pt=null;
-var SK='cpw_s3';
+var SK='cpw_s4';
 
 // ── Fingerprint ───────────────────────────────────────────────
 function getFp(){
@@ -486,7 +495,6 @@ function loadLocal(){
     if(!raw) return false;
     var d=JSON.parse(raw);
     if(!d.s||!d.v) return false;
-    // Calculate elapsed since saved
     var elapsed=Math.floor((Date.now()-d.at)/1000);
     var adj=(d.rem||0)-elapsed;
     if(adj<=0){clearLocal();return false;}
@@ -497,6 +505,18 @@ function loadLocal(){
 }
 
 function clearLocal(){localStorage.removeItem(SK);}
+
+// ── Sync remaining seconds to server ─────────────────────────
+function syncToServer(){
+  if(!_v||_rem<=0) return;
+  navigator.sendBeacon('/portal/sync',
+    JSON.stringify({voucher_code:_v,remaining_seconds:_rem}));
+}
+
+// Sync when page closes/navigates away
+window.addEventListener('beforeunload',function(){
+  if(_s&&_v&&_rem>0) syncToServer();
+});
 
 // ── Views ─────────────────────────────────────────────────────
 function show(name){
@@ -540,21 +560,24 @@ window.connect=function(){
     var r=rd.r,d=rd.d;
     if(d.success){
       _s=d.session_id; _v=d.voucher_code;
-      _total=d.remaining_minutes*60;
-      _rem=d.remaining_minutes*60;
-      _start=new Date();
+      // Use remaining_seconds from server — exact sub-minute accuracy
+      _rem   = d.remaining_seconds || d.remaining_minutes*60;
+      _total = _rem;
+      _start = new Date();
       save();
+      // GA: track successful connection
+      if(typeof gtag!=='undefined') gtag('event','voucher_connect',{voucher_code:_v});
       startSession();
     } else if(r.status===429){
       showWarn(d.message);
-      btn.innerHTML='Connect to Internet'; btn.disabled=false;
+      btn.innerHTML='Connect to Internet';btn.disabled=false;
     } else {
       showError(d.message||'Connection failed. Check your voucher code.');
-      btn.innerHTML='Connect to Internet'; btn.disabled=false;
+      btn.innerHTML='Connect to Internet';btn.disabled=false;
     }
   }).catch(function(){
     showError('Unable to reach the server. Please try again.');
-    btn.innerHTML='Connect to Internet'; btn.disabled=false;
+    btn.innerHTML='Connect to Internet';btn.disabled=false;
   });
 };
 
@@ -573,17 +596,21 @@ function startSession(){
 
   // Countdown every second
   _ct=setInterval(function(){
-    if(_rem>0){_rem--;tick();if(_rem%10===0)save();}
+    if(_rem>0){
+      _rem--;tick();
+      // Save locally every 5 seconds
+      if(_rem%5===0) save();
+    }
   },1000);
 
-  // Heartbeat every 60s — deducts server-side only, no time sync
+  // Heartbeat every 60s — deducts server-side
   _ht=setInterval(heartbeat,60000);
 
-  // Poll every 15s — detect kick only, use verify endpoint
+  // Poll every 15s — check for kick
   _pt=setInterval(pollKick,15000);
 }
 
-// ── Tick ──────────────────────────────────────────────────────
+// ── Clock ─────────────────────────────────────────────────────
 function tick(){
   var h=Math.floor(_rem/3600);
   var m=Math.floor((_rem%3600)/60);
@@ -595,7 +622,7 @@ function tick(){
 
   disp.textContent=pad(h)+':'+pad(m)+':'+pad(s);
 
-  // Bar = current remaining / total minutes when voucher was bought
+  // Accurate bar: current seconds / total seconds when connected
   var pct=_total>0?(_rem/_total*100):0;
   fill.style.width=pct+'%';
 
@@ -615,7 +642,7 @@ function tick(){
 
 function pad(n){return String(n).padStart(2,'0');}
 
-// ── Heartbeat — deducts time, no display sync ─────────────────
+// ── Heartbeat ─────────────────────────────────────────────────
 function heartbeat(){
   if(!_s||!_v) return;
   fetch('/portal/heartbeat',{
@@ -630,11 +657,11 @@ function heartbeat(){
         kicked(d.message);
       } else {expired();}
     }
-    // No time sync here — prevents display jump
+    // Do NOT update display from heartbeat — no jump
   }).catch(function(){});
 }
 
-// ── Poll for kick — uses verify, no time deduction ────────────
+// ── Poll for kick ─────────────────────────────────────────────
 function pollKick(){
   if(!_s||!_v) return;
   fetch('/portal/verify',{
@@ -653,11 +680,16 @@ function pollKick(){
 // ── Disconnect ────────────────────────────────────────────────
 window.disconnect=function(){
   if(!confirm('End your session and disconnect from the internet?')) return;
-  stopTimers();clearLocal();
+  // GA: track manual disconnect
+  if(typeof gtag!=='undefined') gtag('event','voucher_disconnect',{voucher_code:_v,remaining_seconds:_rem});
+  stopTimers();
+  // Sync exact seconds before logout
+  var remAtLogout=_rem;
+  clearLocal();
   fetch('/portal/logout',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({session_id:_s})
+    body:JSON.stringify({session_id:_s,voucher_code:_v,remaining_seconds:remAtLogout})
   }).catch(function(){});
   _s=_v=null;_rem=_total=0;
   show('login');resetForm();
@@ -665,12 +697,18 @@ window.disconnect=function(){
 
 // ── End states ────────────────────────────────────────────────
 function kicked(reason){
+  // GA: track session kicked
+  if(typeof gtag!=='undefined') gtag('event','session_kicked',{voucher_code:_v});
   document.getElementById('kicked-reason').textContent=
     reason||'Your session was ended because another device connected using the same voucher code.';
   show('kicked');
 }
 
-function expired(){show('expired');}
+function expired(){
+  // GA: track time expiry
+  if(typeof gtag!=='undefined') gtag('event','voucher_expired',{voucher_code:_v});
+  show('expired');
+}
 
 function stopTimers(){
   clearInterval(_ct);clearInterval(_ht);clearInterval(_pt);
@@ -691,7 +729,7 @@ window.resetForm=resetForm;
 getFp();
 
 if(loadLocal()){
-  // Use /portal/verify — does NOT deduct time, just checks if session alive
+  // Verify session + get exact remaining seconds from server
   fetch('/portal/verify',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -699,15 +737,15 @@ if(loadLocal()){
   }).then(function(r){return r.json();})
   .then(function(d){
     if(d.success&&d.action!=='disconnect'){
-      // Only sync time on restore — single source of truth from server
-      _rem=d.remaining_minutes*60;
+      // Use server's remaining_seconds — exact sub-minute accuracy
+      _rem  =d.remaining_seconds||d.remaining_minutes*60;
       _total=_total||_rem;
       startSession();
     } else {
       clearLocal();show('login');
     }
   }).catch(function(){
-    // Server unreachable — restore from local storage time
+    // Server unreachable — use local estimate
     startSession();
   });
 } else {

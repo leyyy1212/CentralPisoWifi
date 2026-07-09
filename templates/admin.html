@@ -493,6 +493,14 @@ tbody tr:hover td { background: rgba(255,255,255,.015); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZT30LQ2MR5"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag("js", new Date());
+  gtag("config", "G-ZT30LQ2MR5");
+</script>
 </head>
 <body>
 
@@ -527,6 +535,11 @@ tbody tr:hover td { background: rgba(255,255,255,.015); }
     <div class="nav-section-label" style="margin-top:12px">Network</div>
     <div class="nav-item" onclick="showSection('hotspots',this)">
       <span class="nav-icon">📶</span> Hotspots
+    </div>
+
+    <div class="nav-section-label" style="margin-top:12px">Insights</div>
+    <div class="nav-item" onclick="showSection('analytics',this)">
+      <span class="nav-icon">📈</span> Analytics
     </div>
   </nav>
 
@@ -659,6 +672,31 @@ tbody tr:hover td { background: rgba(255,255,255,.015); }
       <div class="table-card" id="tx-table">
         <div class="empty"><span class="empty-icon">⏳</span><p>Loading...</p></div>
       </div>
+    </div>
+
+    <!-- Analytics -->
+    <div class="section" id="section-analytics">
+      <div class="stats-row" id="analytics-stats">
+        <div class="stat-card green"><span class="stat-icon">📅</span><div class="stat-label">Sessions Today</div><div class="stat-value green" id="an-today">—</div></div>
+        <div class="stat-card blue"><span class="stat-icon">📆</span><div class="stat-label">Sessions This Week</div><div class="stat-value blue" id="an-week">—</div></div>
+        <div class="stat-card warn"><span class="stat-icon">⏱</span><div class="stat-label">Avg Session Duration</div><div class="stat-value warn" id="an-avg">—</div></div>
+        <div class="stat-card green"><span class="stat-icon">💵</span><div class="stat-label">Income Today</div><div class="stat-value green" id="an-inc-today">—</div></div>
+        <div class="stat-card blue"><span class="stat-icon">💰</span><div class="stat-label">Income This Week</div><div class="stat-value blue" id="an-inc-week">—</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+        <div>
+          <div class="sec-header"><div class="sec-title">Sessions by Hotspot</div></div>
+          <div class="table-card" id="an-hotspot-table"><div class="empty"><span class="empty-icon">⏳</span><p>Loading...</p></div></div>
+        </div>
+        <div>
+          <div class="sec-header"><div class="sec-title">Income by Payment Method</div></div>
+          <div class="table-card" id="an-payment-table"><div class="empty"><span class="empty-icon">⏳</span><p>Loading...</p></div></div>
+        </div>
+      </div>
+
+      <div class="sec-header"><div class="sec-title">Daily Sessions (Last 7 Days)</div></div>
+      <div class="table-card" id="an-daily-table"><div class="empty"><span class="empty-icon">⏳</span><p>Loading...</p></div></div>
     </div>
 
     <!-- Hotspots -->
@@ -854,6 +892,47 @@ async function adminLogout() {
   window.location.href = '/admin/login';
 }
 
+async function loadAnalytics() {
+  try {
+    var r = await fetch('/admin/analytics');
+    var d = await r.json();
+    if (!d.success) return;
+    var s = d.summary;
+
+    document.getElementById('an-today').textContent     = s.sessions_today;
+    document.getElementById('an-week').textContent      = s.sessions_week;
+    document.getElementById('an-avg').textContent       = s.avg_duration_mins + ' min';
+    document.getElementById('an-inc-today').textContent = '₱' + s.income_today.toFixed(2);
+    document.getElementById('an-inc-week').textContent  = '₱' + s.income_week.toFixed(2);
+
+    // By hotspot table
+    var hRows = Object.entries(d.by_hotspot).sort((a,b)=>b[1]-a[1]).map(function(e){
+      return '<tr><td><span class="mono">'+e[0]+'</span></td><td><span class="mono">'+e[1]+'</span> sessions</td></tr>';
+    }).join('');
+    document.getElementById('an-hotspot-table').innerHTML = hRows
+      ? '<table><thead><tr><th>Hotspot</th><th>Total Sessions</th></tr></thead><tbody>'+hRows+'</tbody></table>'
+      : '<div class="empty"><span class="empty-icon">📡</span><p>No session data yet.</p></div>';
+
+    // By payment table
+    var pRows = Object.entries(d.by_payment).sort((a,b)=>b[1]-a[1]).map(function(e){
+      return '<tr><td>'+badge(e[0])+'</td><td style="font-weight:700;color:#2ecc71">₱'+e[1].toFixed(2)+'</td></tr>';
+    }).join('');
+    document.getElementById('an-payment-table').innerHTML = pRows
+      ? '<table><thead><tr><th>Method</th><th>Total Income</th></tr></thead><tbody>'+pRows+'</tbody></table>'
+      : '<div class="empty"><span class="empty-icon">💳</span><p>No transactions yet.</p></div>';
+
+    // Daily sessions table
+    var days = Object.entries(d.daily_sessions).sort((a,b)=>b[0].localeCompare(a[0]));
+    var dRows = days.map(function(e){
+      return '<tr><td style="color:var(--text2)">'+e[0]+'</td><td><span class="mono">'+e[1]+'</span> sessions</td></tr>';
+    }).join('');
+    document.getElementById('an-daily-table').innerHTML = dRows
+      ? '<table><thead><tr><th>Date</th><th>Sessions</th></tr></thead><tbody>'+dRows+'</tbody></table>'
+      : '<div class="empty"><span class="empty-icon">📅</span><p>No data for the past 7 days.</p></div>';
+
+  } catch(e) {}
+}
+
 function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = (type === 'ok' ? '✓  ' : '✕  ') + msg;
@@ -862,7 +941,9 @@ function showToast(msg, type) {
 }
 
 loadData();
+loadAnalytics();
 setInterval(loadData, 30000);
+setInterval(loadAnalytics, 60000);
 </script>
 </body>
 </html>
