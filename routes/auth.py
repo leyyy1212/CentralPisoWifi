@@ -1,7 +1,7 @@
 import hashlib
 from flask import Blueprint, request, jsonify, render_template, session, redirect, url_for
 from services.voucher_service import (
-    get_voucher_by_code, is_voucher_valid, deduct_minutes,
+    get_voucher_by_code, is_voucher_valid,
     deduct_seconds, get_remaining_seconds, sync_seconds
 )
 from services.session_service import (
@@ -22,6 +22,190 @@ COOLDOWN_SECONDS = 60
 @auth_bp.route("/portal")
 def portal():
     return render_template("portal.html")
+
+
+# ── Portal sync — saves exact seconds BEFORE anything else ────
+
+@auth_bp.route("/portal/sync", methods=["POST"])
+def portal_sync():
+    """
+    Client pushes exact remaining seconds to the server.
+    Must be called before logout or switching devices.
+    Uses navigator.sendBeacon so it fires even on page close.
+    """
+    data              = request.get_json(silent=True) or {}
+    voucher_code      = data.get("voucher_code", "").strip().upper()
+    remaining_seconds = data.get("remaining_seconds", 0)
+
+    if not voucher_code:
+        return jsonify({"success": False}), 400
+
+    sync_seconds(voucher_code, int(remaining_seconds))
+    return jsonify({"success": True}), 200
+
+
+# ── Portal login ──────────────────────────────────────────────
+
+@auth_bp.route("/portal/login", methods=["POST"])
+def portal_login():
+    data         = request.get_json()
+    voucher_code = data.get("voucher_code", "").strip().upper()
+    hotspot_code = data.get("hotspot_code", "PORTAL").strip().upper()
+    device_fp    = data.get("device_mac", "browser-client").strip().lower()
+    # Client sends its current remaining_seconds BEFORE switching
+    client_remaining = data.get("remaining_seconds")
+
+    if not voucher_code:
+        return jsonify({"success": False, "message": "Voucher code is required"}), 400
+
+    voucher = get_voucher_by_code(voucher_code)
+    if not voucher:
+        return jsonify({"success": False, "message": "Voucher not found"}), 404
+
+    valid, reason = is_voucher_valid(voucher)
+    if not valid:
+        return jsonify({"success": False, "message": reason}), 403
+
+    # Check for existing active session
+    existing = get_any_active_session(voucher_code)
+    if existing:
+        existing_fp = existing.get("device_mac", "")
+        if existing_fp == device_fp:
+            # Same device reconnecting — end old session, start fresh
+            end_all_active_sessions(voucher_code)
+        else:
+            # Different device — check cooldown
+            if check_cooldown(voucher_code, hotspot_code, COOLDOWN_SECONDS):
+                return jsonify({
+                    "success": False,
+                    "message": f"This voucher was just used on another device. Please wait {COOLDOWN_SECONDS} seconds before connecting."
+                }), 429
+            # End old session — time was already synced by the other device's beforeunload
+            end_all_active_sessions(voucher_code)
+
+    # If client sent its remaining seconds (switching devices), sync it first
+    if client_remaining is not None:
+        sync_seconds(voucher_code, int(client_remaining))
+        # Re-fetch voucher to get updated seconds
+        voucher = get_voucher_by_code(voucher_code)
+
+    session_record = create_session(voucher_code, hotspot_code, device_fp)
+    if not session_record:
+        return jsonify({"success": False, "message": "Failed to create session"}), 500
+
+    remaining_secs = get_remaining_seconds(voucher)
+
+    return jsonify({
+        "success": True,
+        "session_id": session_record["id"],
+        "voucher_code": voucher["voucher_code"],
+        "remaining_seconds": remaining_secs,
+        "remaining_minutes": remaining_secs // 60,
+    }), 200
+
+
+# ── Portal verify ─────────────────────────────────────────────
+
+@auth_bp.route("/portal/verify", methods=["POST"])
+def portal_verify():
+    """Check session is alive + return exact remaining seconds. No time deducted."""
+    data         = request.get_json()
+    session_id   = data.get("session_id")
+    voucher_code = data.get("voucher_code", "").strip().upper()
+
+    if not session_id or not voucher_code:
+        return jsonify({"success": False, "message": "session_id and voucher_code required"}), 400
+
+    session_record = get_session_by_id(session_id)
+    if not session_record or not session_record.get("active"):
+        return jsonify({
+            "success": False,
+            "action": "disconnect",
+            "message": "Session is no longer active."
+        }), 403
+
+    voucher = get_voucher_by_code(voucher_code)
+    if not voucher:
+        return jsonify({"success": False, "action": "disconnect"}), 404
+
+    remaining_secs = get_remaining_seconds(voucher)
+
+    return jsonify({
+        "success": True,
+        "remaining_seconds": remaining_secs,
+        "remaining_minutes": remaining_secs // 60,
+        "action": "continue" if remaining_secs > 0 else "disconnect"
+    }), 200
+
+
+# ── Portal heartbeat ──────────────────────────────────────────
+
+@auth_bp.route("/portal/heartbeat", methods=["POST"])
+def portal_heartbeat():
+    """Deducts exactly 60 seconds every minute. Checks session is still active."""
+    data         = request.get_json()
+    session_id   = data.get("session_id")
+    voucher_code = data.get("voucher_code", "").strip().upper()
+    # Client sends its current seconds so we can sync if needed
+    client_remaining = data.get("remaining_seconds")
+
+    if not session_id or not voucher_code:
+        return jsonify({"success": False, "message": "session_id and voucher_code required"}), 400
+
+    session_record = get_session_by_id(session_id)
+    if not session_record:
+        return jsonify({"success": False, "action": "disconnect", "message": "Session not found."}), 404
+
+    if not session_record.get("active"):
+        return jsonify({
+            "success": False,
+            "action": "disconnect",
+            "message": "Your session was ended because another device connected using the same voucher code."
+        }), 403
+
+    voucher = get_voucher_by_code(voucher_code)
+    if not voucher:
+        return jsonify({"success": False, "action": "disconnect"}), 404
+
+    valid, reason = is_voucher_valid(voucher)
+    if not valid:
+        end_session(session_id)
+        return jsonify({"success": False, "message": reason, "action": "disconnect"}), 403
+
+    # Deduct exactly 60 seconds
+    deduct_seconds(voucher_code, 60)
+
+    # Re-fetch to get updated value
+    voucher = get_voucher_by_code(voucher_code)
+    remaining_secs = get_remaining_seconds(voucher)
+
+    return jsonify({
+        "success": True,
+        "remaining_seconds": remaining_secs,
+        "remaining_minutes": remaining_secs // 60,
+        "action": "continue" if remaining_secs > 0 else "disconnect"
+    }), 200
+
+
+# ── Portal logout ─────────────────────────────────────────────
+
+@auth_bp.route("/portal/logout", methods=["POST"])
+def portal_logout():
+    """End session. Syncs exact seconds before closing."""
+    data              = request.get_json()
+    session_id        = data.get("session_id")
+    voucher_code      = data.get("voucher_code", "").strip().upper()
+    remaining_seconds = data.get("remaining_seconds")
+
+    if not session_id:
+        return jsonify({"success": False, "message": "session_id is required"}), 400
+
+    # Sync exact seconds FIRST before ending session
+    if voucher_code and remaining_seconds is not None:
+        sync_seconds(voucher_code, int(remaining_seconds))
+
+    end_session(session_id)
+    return jsonify({"success": True, "message": "Logged out successfully"}), 200
 
 
 # ── Hotspot machine login (requires API key) ──────────────────
@@ -61,178 +245,17 @@ def login():
     if not session_record:
         return jsonify({"success": False, "message": "Failed to create session"}), 500
 
+    remaining_secs = get_remaining_seconds(voucher)
+
     return jsonify({
         "success": True,
         "session_id": session_record["id"],
         "voucher_code": voucher["voucher_code"],
-        "remaining_minutes": voucher["remaining_minutes"],
-        "remaining_seconds": get_remaining_seconds(voucher),
+        "remaining_seconds": remaining_secs,
+        "remaining_minutes": remaining_secs // 60,
         "hotspot_code": hotspot_code,
         "device_mac": device_mac
     }), 200
-
-
-# ── Portal login (browser, no API key) ───────────────────────
-
-@auth_bp.route("/portal/login", methods=["POST"])
-def portal_login():
-    data         = request.get_json()
-    voucher_code = data.get("voucher_code", "").strip().upper()
-    hotspot_code = data.get("hotspot_code", "PORTAL").strip().upper()
-    device_fp    = data.get("device_mac", "browser-client").strip().lower()
-
-    if not voucher_code:
-        return jsonify({"success": False, "message": "Voucher code is required"}), 400
-
-    voucher = get_voucher_by_code(voucher_code)
-    if not voucher:
-        return jsonify({"success": False, "message": "Voucher not found"}), 404
-
-    valid, reason = is_voucher_valid(voucher)
-    if not valid:
-        return jsonify({"success": False, "message": reason}), 403
-
-    existing = get_any_active_session(voucher_code)
-    if existing:
-        existing_fp = existing.get("device_mac", "")
-        if existing_fp == device_fp:
-            # Same device reconnecting — end old, create new
-            end_all_active_sessions(voucher_code)
-        else:
-            # Different device
-            if check_cooldown(voucher_code, hotspot_code, COOLDOWN_SECONDS):
-                return jsonify({
-                    "success": False,
-                    "message": f"This voucher was just used on another device. Please wait {COOLDOWN_SECONDS} seconds before connecting."
-                }), 429
-            end_all_active_sessions(voucher_code)
-
-    session_record = create_session(voucher_code, hotspot_code, device_fp)
-    if not session_record:
-        return jsonify({"success": False, "message": "Failed to create session"}), 500
-
-    remaining_secs = get_remaining_seconds(voucher)
-
-    return jsonify({
-        "success": True,
-        "session_id": session_record["id"],
-        "voucher_code": voucher["voucher_code"],
-        "remaining_minutes": voucher["remaining_minutes"],
-        "remaining_seconds": remaining_secs,
-    }), 200
-
-
-# ── Portal verify (no time deduction) ────────────────────────
-
-@auth_bp.route("/portal/verify", methods=["POST"])
-def portal_verify():
-    data         = request.get_json()
-    session_id   = data.get("session_id")
-    voucher_code = data.get("voucher_code", "").strip().upper()
-
-    if not session_id or not voucher_code:
-        return jsonify({"success": False, "message": "session_id and voucher_code required"}), 400
-
-    session_record = get_session_by_id(session_id)
-    if not session_record or not session_record.get("active"):
-        return jsonify({"success": False, "action": "disconnect", "message": "Session is no longer active."}), 403
-
-    voucher = get_voucher_by_code(voucher_code)
-    if not voucher:
-        return jsonify({"success": False, "action": "disconnect"}), 404
-
-    remaining_secs = get_remaining_seconds(voucher)
-
-    return jsonify({
-        "success": True,
-        "remaining_seconds": remaining_secs,
-        "remaining_minutes": voucher["remaining_minutes"],
-        "action": "continue"
-    }), 200
-
-
-# ── Portal heartbeat (deducts 60 seconds every minute) ───────
-
-@auth_bp.route("/portal/heartbeat", methods=["POST"])
-def portal_heartbeat():
-    data         = request.get_json()
-    session_id   = data.get("session_id")
-    voucher_code = data.get("voucher_code", "").strip().upper()
-
-    if not session_id or not voucher_code:
-        return jsonify({"success": False, "message": "session_id and voucher_code required"}), 400
-
-    session_record = get_session_by_id(session_id)
-    if not session_record:
-        return jsonify({"success": False, "action": "disconnect", "message": "Session not found."}), 404
-
-    if not session_record.get("active"):
-        return jsonify({
-            "success": False,
-            "action": "disconnect",
-            "message": "Your session was ended because another device connected using the same voucher code."
-        }), 403
-
-    voucher = get_voucher_by_code(voucher_code)
-    if not voucher:
-        return jsonify({"success": False, "action": "disconnect"}), 404
-
-    valid, reason = is_voucher_valid(voucher)
-    if not valid:
-        end_session(session_id)
-        return jsonify({"success": False, "message": reason, "action": "disconnect"}), 403
-
-    # Deduct exactly 60 seconds
-    deduct_seconds(voucher_code, 60)
-
-    remaining_secs = get_remaining_seconds(voucher) - 60
-
-    return jsonify({
-        "success": True,
-        "remaining_seconds": max(0, remaining_secs),
-        "remaining_minutes": max(0, remaining_secs // 60),
-        "action": "continue" if remaining_secs > 0 else "disconnect"
-    }), 200
-
-
-# ── Portal sync (client pushes exact seconds on pause/close) ──
-
-@auth_bp.route("/portal/sync", methods=["POST"])
-def portal_sync():
-    """
-    Client pushes its exact remaining seconds to the server.
-    Called when the page is about to close or on disconnect.
-    This ensures sub-minute accuracy is preserved across devices.
-    """
-    data              = request.get_json()
-    voucher_code      = data.get("voucher_code", "").strip().upper()
-    remaining_seconds = data.get("remaining_seconds", 0)
-
-    if not voucher_code:
-        return jsonify({"success": False}), 400
-
-    sync_seconds(voucher_code, int(remaining_seconds))
-    return jsonify({"success": True}), 200
-
-
-# ── Portal logout ─────────────────────────────────────────────
-
-@auth_bp.route("/portal/logout", methods=["POST"])
-def portal_logout():
-    data              = request.get_json()
-    session_id        = data.get("session_id")
-    voucher_code      = data.get("voucher_code", "").strip().upper()
-    remaining_seconds = data.get("remaining_seconds")
-
-    if not session_id:
-        return jsonify({"success": False, "message": "session_id is required"}), 400
-
-    # Sync exact seconds before ending session
-    if voucher_code and remaining_seconds is not None:
-        sync_seconds(voucher_code, int(remaining_seconds))
-
-    end_session(session_id)
-    return jsonify({"success": True, "message": "Logged out successfully"}), 200
 
 
 # ── Admin login / logout ──────────────────────────────────────
