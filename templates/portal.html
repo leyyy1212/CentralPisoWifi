@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Central PisoWiFi — Connect</title>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZT30LQ2MR5"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag("js", new Date());
+  gtag("config", "G-ZT30LQ2MR5");
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 
@@ -12,7 +20,6 @@
   --surface:    #0d1117;
   --surface2:   #131920;
   --border:     #1e2d3d;
-  --border2:    #243447;
   --blue:       #2f80ed;
   --blue-light: #56a5ff;
   --blue-glow:  rgba(47,128,237,0.2);
@@ -41,159 +48,92 @@ body {
   grid-template-columns: 1fr 1fr;
 }
 
-/* ── Left panel ── */
 .left {
-  display: flex;
-  flex-direction: column;
+  display: flex; flex-direction: column;
   justify-content: space-between;
   padding: 48px;
   background: var(--surface);
   border-right: 1px solid var(--border);
-  position: relative;
-  overflow: hidden;
+  position: relative; overflow: hidden;
 }
-
 .left::after {
-  content: '';
-  position: absolute;
+  content: ''; position: absolute;
   bottom: -120px; left: -120px;
-  width: 400px; height: 400px;
-  border-radius: 50%;
+  width: 400px; height: 400px; border-radius: 50%;
   background: radial-gradient(circle, rgba(47,128,237,0.07) 0%, transparent 70%);
   pointer-events: none;
 }
 
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-icon {
-  width: 40px; height: 40px;
-  background: var(--blue);
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
+  width: 40px; height: 40px; background: var(--blue);
+  border-radius: 10px; display: flex; align-items: center;
+  justify-content: center; font-size: 18px;
   box-shadow: 0 4px 16px var(--blue-glow);
 }
 .brand-name { font-size: 15px; font-weight: 700; }
 .brand-tag  { font-size: 11px; color: var(--text2); margin-top: 1px; }
 
 .hero { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 48px 0; }
-
 .hero-eyebrow {
   display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(47,128,237,0.1);
-  border: 1px solid rgba(47,128,237,0.2);
-  border-radius: 99px;
-  padding: 5px 12px;
+  background: rgba(47,128,237,0.1); border: 1px solid rgba(47,128,237,0.2);
+  border-radius: 99px; padding: 5px 12px;
   font-size: 11px; font-weight: 600; color: var(--blue-light);
   letter-spacing: .06em; text-transform: uppercase;
   margin-bottom: 24px; width: fit-content;
 }
-
-.pulse-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--blue-light);
-  animation: blink 2s infinite;
-}
+.pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue-light); animation: blink 2s infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-.hero h1 {
-  font-size: clamp(26px, 2.8vw, 36px);
-  font-weight: 800; line-height: 1.15;
-  letter-spacing: -0.8px; margin-bottom: 16px;
-}
-.hero h1 span {
-  background: linear-gradient(135deg, var(--blue-light), #a78bfa);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
+.hero h1 { font-size: clamp(26px,2.8vw,36px); font-weight: 800; line-height: 1.15; letter-spacing: -0.8px; margin-bottom: 16px; }
+.hero h1 span { background: linear-gradient(135deg, var(--blue-light), #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .hero p { font-size: 14px; color: var(--text2); line-height: 1.7; max-width: 380px; margin-bottom: 36px; }
 
 .features { display: flex; flex-direction: column; gap: 14px; }
 .feature { display: flex; align-items: flex-start; gap: 12px; }
-.feature-icon {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: var(--surface2); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; flex-shrink: 0; margin-top: 1px;
-}
+.feature-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; margin-top: 1px; }
 .feature-text strong { display: block; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
 .feature-text span   { font-size: 12px; color: var(--text2); line-height: 1.5; }
 
 .left-footer { font-size: 12px; color: var(--text3); }
 
-/* ── Right panel ── */
-.right {
-  display: flex; align-items: center; justify-content: center;
-  padding: 48px 40px; background: var(--bg);
-}
-
+.right { display: flex; align-items: center; justify-content: center; padding: 48px 40px; background: var(--bg); }
 .form-card { width: 100%; max-width: 400px; }
 
-/* ── Views ── */
 .view { display: none; }
 .view.active { display: block; }
 
-/* ── Login view ── */
 .form-title    { font-size: 22px; font-weight: 800; letter-spacing: -0.4px; margin-bottom: 6px; }
 .form-subtitle { font-size: 13px; color: var(--text2); margin-bottom: 28px; line-height: 1.6; }
 
-.field-label {
-  font-size: 11px; font-weight: 700; color: var(--text2);
-  text-transform: uppercase; letter-spacing: .08em;
-  margin-bottom: 8px; display: block;
-}
+.field-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; display: block; }
 
 .input-group { position: relative; margin-bottom: 16px; }
 .input-group input {
-  width: 100%;
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  color: var(--text);
-  padding: 14px 16px;
-  border-radius: 12px;
+  width: 100%; background: var(--surface); border: 1.5px solid var(--border);
+  color: var(--text); padding: 14px 16px; border-radius: 12px;
   font-size: 22px; font-family: var(--mono); font-weight: 700;
   text-align: center; letter-spacing: .2em; text-transform: uppercase;
   outline: none; transition: all .2s;
 }
-.input-group input:focus {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px var(--blue-glow);
-  background: var(--surface2);
-}
-.input-group input::placeholder {
-  color: var(--text3); font-size: 13px; letter-spacing: .05em; font-weight: 400;
-}
+.input-group input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); background: var(--surface2); }
+.input-group input::placeholder { color: var(--text3); font-size: 13px; letter-spacing: .05em; font-weight: 400; }
 
-/* ── Buttons ── */
-.btn {
-  width: 100%; padding: 14px 20px; border-radius: 12px;
-  font-family: var(--sans); font-size: 14px; font-weight: 700;
-  cursor: pointer; border: none; transition: all .2s;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-.btn-primary {
-  background: var(--blue); color: #fff;
-  box-shadow: 0 4px 20px var(--blue-glow);
-}
+.btn { width: 100%; padding: 14px 20px; border-radius: 12px; font-family: var(--sans); font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-primary { background: var(--blue); color: #fff; box-shadow: 0 4px 20px var(--blue-glow); }
 .btn-primary:hover:not(:disabled) { background: var(--blue-light); transform: translateY(-1px); }
 .btn-primary:disabled { opacity: .55; cursor: not-allowed; transform: none; }
-.btn-danger {
-  background: transparent; color: var(--danger);
-  border: 1.5px solid rgba(231,76,60,0.3); margin-top: 10px;
-}
+.btn-danger { background: transparent; color: var(--danger); border: 1.5px solid rgba(231,76,60,0.3); margin-top: 10px; }
 .btn-danger:hover { background: var(--danger-dim); border-color: var(--danger); }
 
-/* ── Alerts ── */
-.alert {
-  border-radius: 10px; padding: 13px 15px;
-  font-size: 13px; margin-top: 14px; display: none;
-  line-height: 1.55; gap: 10px; align-items: flex-start;
-}
+.alert { border-radius: 10px; padding: 13px 15px; font-size: 13px; margin-top: 14px; display: none; line-height: 1.55; gap: 10px; align-items: flex-start; }
 .alert.show { display: flex; }
 .alert-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
 .alert-error { background: var(--danger-dim); border: 1px solid rgba(231,76,60,0.25); color: #f08080; }
-.alert-warn  { background: var(--warn-dim);   border: 1px solid rgba(243,156,18,0.25);  color: #f5c96a; }
+.alert-warn  { background: var(--warn-dim);   border: 1px solid rgba(243,156,18,0.25); color: #f5c96a; }
 .alert-info  { background: rgba(47,128,237,0.08); border: 1px solid rgba(47,128,237,0.2); color: var(--blue-light); }
 
-/* ── Connected view ── */
 .status-pill {
   display: inline-flex; align-items: center; gap: 7px;
   background: rgba(39,174,96,0.1); border: 1px solid rgba(39,174,96,0.25);
@@ -201,73 +141,36 @@ body {
   font-size: 12px; font-weight: 700; color: var(--green-light);
   letter-spacing: .06em; text-transform: uppercase; margin-bottom: 24px;
 }
-.status-pill .dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--green-light);
-  box-shadow: 0 0 8px var(--green-light);
-  animation: blink 2s infinite;
-}
-
-/* ── Countdown clock ── */
-.clock-block { margin-bottom: 8px; text-align: center; }
+.status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green-light); box-shadow: 0 0 8px var(--green-light); animation: blink 2s infinite; }
 
 .clock-display {
-  font-family: var(--mono);
-  font-size: 58px; font-weight: 700; line-height: 1;
-  color: var(--green-light);
+  font-family: var(--mono); font-size: 58px; font-weight: 700;
+  line-height: 1; color: var(--green-light); text-align: center;
   filter: drop-shadow(0 0 20px var(--green-glow));
-  letter-spacing: .04em;
+  letter-spacing: .04em; display: block; margin-bottom: 6px;
 }
-
 .clock-display.warning { color: var(--warn); filter: drop-shadow(0 0 20px rgba(243,156,18,0.3)); }
 .clock-display.critical { color: var(--danger); filter: drop-shadow(0 0 20px rgba(231,76,60,0.3)); animation: flash 1s infinite; }
 @keyframes flash { 0%,100%{opacity:1} 50%{opacity:.6} }
 
-.clock-labels {
-  display: flex; justify-content: center; gap: 0;
-  margin-top: 6px; margin-bottom: 20px;
-}
-.clock-label-item {
-  width: 64px; text-align: center;
-  font-size: 10px; color: var(--text3);
-  text-transform: uppercase; letter-spacing: .08em; font-weight: 600;
-}
+.clock-labels { display: flex; justify-content: center; margin-top: 4px; margin-bottom: 20px; }
+.clock-label-item { width: 64px; text-align: center; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
 
-.progress-track {
-  height: 5px; background: var(--border); border-radius: 99px;
-  margin-bottom: 24px; overflow: hidden;
-}
-.progress-fill {
-  height: 100%; border-radius: 99px; transition: width 1s linear;
-  background: linear-gradient(90deg, var(--green), var(--green-light));
-}
+.progress-track { height: 5px; background: var(--border); border-radius: 99px; margin-bottom: 24px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 99px; transition: width .5s linear; background: linear-gradient(90deg, var(--green), var(--green-light)); }
 .progress-fill.warning { background: linear-gradient(90deg, var(--warn), #f5c06a); }
 .progress-fill.critical { background: linear-gradient(90deg, var(--danger), #f08080); }
 
-/* ── Meta cards ── */
 .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-.meta-item {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 12px 14px;
-}
-.meta-item .label {
-  font-size: 10px; font-weight: 600; color: var(--text3);
-  text-transform: uppercase; letter-spacing: .08em; margin-bottom: 5px;
-}
+.meta-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.meta-item .label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 5px; }
 .meta-item .value { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text); word-break: break-all; }
 
-/* ── Session kicked notice ── */
-.kicked-view .kick-icon { font-size: 48px; text-align: center; display: block; margin-bottom: 16px; }
+.kick-icon { font-size: 48px; text-align: center; display: block; margin-bottom: 16px; }
 
-/* ── Spinner ── */
-.spinner {
-  width: 16px; height: 16px;
-  border: 2px solid rgba(255,255,255,.25); border-top-color: #fff;
-  border-radius: 50%; animation: spin .65s linear infinite; display: inline-block;
-}
+.spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .65s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Responsive ── */
 @media (max-width: 768px) {
   body { grid-template-columns: 1fr; }
   .left { display: none; }
@@ -275,18 +178,9 @@ body {
   .clock-display { font-size: 48px; }
 }
 </style>
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZT30LQ2MR5"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag("js", new Date());
-  gtag("config", "G-ZT30LQ2MR5");
-</script>
 </head>
 <body>
 
-<!-- Left Panel -->
 <div class="left">
   <div class="brand">
     <div class="brand-icon">📶</div>
@@ -295,143 +189,94 @@ body {
       <div class="brand-tag">Voucher-based internet access</div>
     </div>
   </div>
-
   <div class="hero">
     <div class="hero-eyebrow"><div class="pulse-dot"></div> Network Online</div>
     <h1>Fast, reliable internet.<br><span>Pay only for what you use.</span></h1>
-    <p>Enter your voucher code to get connected instantly. Your time balance works across all Central PisoWiFi locations.</p>
+    <p>Enter your voucher code to get connected instantly. Your exact remaining time follows you across all Central PisoWiFi locations.</p>
     <div class="features">
       <div class="feature">
         <div class="feature-icon">⚡</div>
-        <div class="feature-text">
-          <strong>Instant connection</strong>
-          <span>Connect in seconds — no signup, no passwords.</span>
-        </div>
+        <div class="feature-text"><strong>Instant connection</strong><span>Connect in seconds — no signup, no passwords.</span></div>
       </div>
       <div class="feature">
         <div class="feature-icon">🗺️</div>
-        <div class="feature-text">
-          <strong>Use anywhere</strong>
-          <span>Your remaining time follows you across all our hotspots.</span>
-        </div>
+        <div class="feature-text"><strong>Use anywhere</strong><span>Your exact remaining time follows you across all our hotspots.</span></div>
       </div>
       <div class="feature">
         <div class="feature-icon">🔒</div>
-        <div class="feature-text">
-          <strong>One device at a time</strong>
-          <span>Your session is protected. Only one device can be active.</span>
-        </div>
+        <div class="feature-text"><strong>One device at a time</strong><span>Your session is protected. Only one device can be active.</span></div>
       </div>
     </div>
   </div>
-
   <div class="left-footer">© 2025 Central PisoWiFi · All rights reserved</div>
 </div>
 
-<!-- Right Panel -->
 <div class="right">
   <div class="form-card">
 
-    <!-- ── Login View ── -->
+    <!-- Login -->
     <div class="view active" id="view-login">
       <div class="form-title">Connect to WiFi</div>
       <div class="form-subtitle">Enter the voucher code printed on your ticket or given by the operator.</div>
-
       <label class="field-label" for="voucher-input">Voucher Code</label>
       <div class="input-group">
         <input id="voucher-input" type="text" placeholder="e.g. ABC123"
           maxlength="20" autocomplete="off" spellcheck="false"
           onkeydown="if(event.key==='Enter') connect()">
       </div>
-
-      <button class="btn btn-primary" onclick="connect()" id="connect-btn">
-        Connect to Internet
-      </button>
-
-      <div class="alert alert-error" id="error-box">
-        <span class="alert-icon">✕</span><span id="error-text"></span>
-      </div>
-      <div class="alert alert-warn" id="warn-box">
-        <span class="alert-icon">⚠</span><span id="warn-text"></span>
-      </div>
+      <button class="btn btn-primary" onclick="connect()" id="connect-btn">Connect to Internet</button>
+      <div class="alert alert-error" id="error-box"><span class="alert-icon">✕</span><span id="error-text"></span></div>
+      <div class="alert alert-warn"  id="warn-box"> <span class="alert-icon">⚠</span><span id="warn-text"></span></div>
     </div>
 
-    <!-- ── Connected View ── -->
+    <!-- Connected -->
     <div class="view" id="view-connected">
       <div class="status-pill"><div class="dot"></div> Session Active</div>
       <div class="form-title">You're online</div>
       <div class="form-subtitle">Your session is running. Time updates every second.</div>
-
-      <div class="clock-block">
-        <div class="clock-display" id="clock-display">00:00:00</div>
-      </div>
+      <span class="clock-display" id="clock-display">00:00:00</span>
       <div class="clock-labels">
         <div class="clock-label-item">Hours</div>
         <div class="clock-label-item">Mins</div>
         <div class="clock-label-item">Secs</div>
       </div>
-
       <div class="progress-track">
         <div class="progress-fill" id="progress-fill" style="width:100%"></div>
       </div>
-
       <div class="meta-grid">
-        <div class="meta-item">
-          <div class="label">Voucher</div>
-          <div class="value" id="info-voucher">—</div>
-        </div>
-        <div class="meta-item">
-          <div class="label">Device ID</div>
-          <div class="value" id="info-device">—</div>
-        </div>
-        <div class="meta-item">
-          <div class="label">Session ID</div>
-          <div class="value" id="info-session">—</div>
-        </div>
-        <div class="meta-item">
-          <div class="label">Started</div>
-          <div class="value" id="info-started">—</div>
-        </div>
+        <div class="meta-item"><div class="label">Voucher</div><div class="value" id="info-voucher">—</div></div>
+        <div class="meta-item"><div class="label">Device ID</div><div class="value" id="info-device">—</div></div>
+        <div class="meta-item"><div class="label">Session</div><div class="value" id="info-session">—</div></div>
+        <div class="meta-item"><div class="label">Started</div><div class="value" id="info-started">—</div></div>
       </div>
-
       <div class="alert alert-warn" id="low-time-warn" style="margin-bottom:12px">
-        <span class="alert-icon">⚠</span>
-        <span>Less than 5 minutes remaining. Your session will end soon.</span>
+        <span class="alert-icon">⚠</span><span>Less than 5 minutes remaining. Your session will end soon.</span>
       </div>
-
       <button class="btn btn-danger" onclick="disconnect()">End Session &amp; Disconnect</button>
     </div>
 
-    <!-- ── Kicked View ── -->
-    <div class="view kicked-view" id="view-kicked">
+    <!-- Kicked -->
+    <div class="view" id="view-kicked">
       <span class="kick-icon">⚠️</span>
       <div class="form-title">Session Ended</div>
       <div class="form-subtitle" id="kicked-reason">Your session was ended because another device connected using the same voucher code.</div>
-
       <div class="alert alert-warn show" style="margin-bottom:20px">
         <span class="alert-icon">⚠</span>
         <span>If this was not you, your voucher code may have been shared. Contact the operator for assistance.</span>
       </div>
-
-      <button class="btn btn-primary" onclick="showView('login'); resetForm()">
-        Try Again
-      </button>
+      <button class="btn btn-primary" onclick="showView('login');resetForm()">Try Again</button>
     </div>
 
-    <!-- ── Expired View ── -->
+    <!-- Expired -->
     <div class="view" id="view-expired">
-      <span style="font-size:48px;text-align:center;display:block;margin-bottom:16px">⏰</span>
+      <span class="kick-icon">⏰</span>
       <div class="form-title">Time's up!</div>
       <div class="form-subtitle">Your voucher has run out of time. Purchase a new voucher to continue browsing.</div>
-
       <div class="alert alert-info show" style="margin-bottom:20px">
         <span class="alert-icon">ℹ</span>
         <span>Ask the operator for a new voucher or visit any Central PisoWiFi location.</span>
       </div>
-
-      <button class="btn btn-primary" onclick="showView('login'); resetForm()">
-        Use Another Voucher
-      </button>
+      <button class="btn btn-primary" onclick="showView('login');resetForm()">Use Another Voucher</button>
     </div>
 
   </div>
@@ -444,10 +289,10 @@ body {
 // ── Dev Tools Protection ──────────────────────────────────────
 document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
 document.addEventListener('keydown', function(e) {
-  if (e.key==='F12' ||
-    (e.ctrlKey&&e.shiftKey&&['I','J','C','K'].includes(e.key.toUpperCase())) ||
-    (e.ctrlKey&&['U','S'].includes(e.key.toUpperCase()))) {
-    e.preventDefault(); e.stopPropagation(); return false;
+  if (e.key==='F12'||
+    (e.ctrlKey&&e.shiftKey&&['I','J','C','K'].includes(e.key.toUpperCase()))||
+    (e.ctrlKey&&['U','S'].includes(e.key.toUpperCase()))){
+    e.preventDefault();e.stopPropagation();return false;
   }
 });
 setInterval(function(){
@@ -460,7 +305,7 @@ setInterval(function(){
 var _s=null,_v=null,_fp=null;
 var _total=0,_rem=0,_start=null;
 var _ct=null,_ht=null,_pt=null;
-var SK='cpw_s5';
+var SK='cpw_s7';
 
 // ── Fingerprint ───────────────────────────────────────────────
 function getFp(){
@@ -493,7 +338,6 @@ function loadLocal(){
     if(!raw) return false;
     var d=JSON.parse(raw);
     if(!d.s||!d.v) return false;
-    // How many seconds passed since we last saved
     var elapsed=Math.floor((Date.now()-d.at)/1000);
     var adj=(d.rem||0)-elapsed;
     if(adj<=0){clearLocal();return false;}
@@ -505,10 +349,9 @@ function loadLocal(){
 
 function clearLocal(){localStorage.removeItem(SK);}
 
-// ── Sync exact seconds to server before unload ────────────────
+// ── Sync on page close ────────────────────────────────────────
 window.addEventListener('beforeunload',function(){
   if(!_v||_rem<=0) return;
-  // sendBeacon fires even when the page is closing
   navigator.sendBeacon('/portal/sync',
     JSON.stringify({voucher_code:_v,remaining_seconds:_rem}));
 });
@@ -518,6 +361,8 @@ function show(name){
   document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
   document.getElementById('view-'+name).classList.add('active');
 }
+window.showView=show;
+
 function clearAlerts(){
   document.getElementById('error-box').classList.remove('show');
   document.getElementById('warn-box').classList.remove('show');
@@ -534,6 +379,9 @@ function showWarn(msg){
 }
 
 // ── Connect ───────────────────────────────────────────────────
+// ★ THE FIX: always send current _rem in the login request
+// Server saves it to DB BEFORE creating the new session
+// So the new device always gets the exact same seconds
 window.connect=function(){
   clearAlerts();
   var code=document.getElementById('voucher-input').value.trim().toUpperCase();
@@ -543,10 +391,12 @@ window.connect=function(){
   btn.innerHTML='<span class="spinner"></span> Connecting...';
   btn.disabled=true;
 
-  // IMPORTANT: send current remaining_seconds so server can preserve exact time
-  // This handles the case where THIS device had a session before
-  var payload={voucher_code:code,device_mac:getFp()};
-  if(_rem>0 && _v===code) payload.remaining_seconds=_rem;
+  // Always include remaining_seconds so server can sync before responding
+  var payload={
+    voucher_code:code,
+    device_mac:getFp(),
+    remaining_seconds: (_v===code && _rem>0) ? _rem : null
+  };
 
   fetch('/portal/login',{
     method:'POST',
@@ -556,14 +406,12 @@ window.connect=function(){
   .then(function(rd){
     var r=rd.r,d=rd.d;
     if(d.success){
-      _s=d.session_id;
-      _v=d.voucher_code;
-      // Use EXACT remaining_seconds from server — always correct
+      _s=d.session_id;_v=d.voucher_code;
+      // Server returns the exact seconds it stored — use this directly
       _rem  =d.remaining_seconds;
-      _total=_total>0&&_v===d.voucher_code?_total:d.remaining_seconds;
+      _total=d.remaining_seconds;
       _start=new Date();
       save();
-      // GA event
       if(typeof gtag!=='undefined') gtag('event','voucher_connect',{voucher_code:_v});
       startSession();
     } else if(r.status===429){
@@ -591,18 +439,16 @@ function startSession(){
   show('connected');
   stopTimers();
 
-  // Tick every second
   _ct=setInterval(function(){
     if(_rem>0){
       _rem--;tick();
-      if(_rem%5===0) save(); // save every 5s
+      if(_rem%5===0) save();
     }
   },1000);
 
-  // Heartbeat every 60s — server deducts 60 seconds
+  // Heartbeat every 60s
   _ht=setInterval(heartbeat,60000);
-
-  // Poll every 15s — detect kick
+  // Poll for kick every 15s
   _pt=setInterval(pollKick,15000);
 }
 
@@ -611,7 +457,6 @@ function tick(){
   var h=Math.floor(_rem/3600);
   var m=Math.floor((_rem%3600)/60);
   var s=_rem%60;
-
   var disp=document.getElementById('clock-display');
   var fill=document.getElementById('progress-fill');
   var warn=document.getElementById('low-time-warn');
@@ -624,38 +469,32 @@ function tick(){
   disp.classList.remove('warning','critical');
   fill.classList.remove('warning','critical');
   var mins=_rem/60;
-  if(mins<=1){
-    disp.classList.add('critical');fill.classList.add('critical');
-  } else if(mins<=5){
-    disp.classList.add('warning');fill.classList.add('warning');
-    warn.classList.add('show');
-  }
+  if(mins<=1){disp.classList.add('critical');fill.classList.add('critical');}
+  else if(mins<=5){disp.classList.add('warning');fill.classList.add('warning');warn.classList.add('show');}
 
   if(_rem<=0){stopTimers();clearLocal();expired();}
 }
-
 function pad(n){return String(n).padStart(2,'0');}
 
-// ── Heartbeat — deducts 60s server side ───────────────────────
+// ── Heartbeat ─────────────────────────────────────────────────
 function heartbeat(){
   if(!_s||!_v) return;
   fetch('/portal/heartbeat',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({session_id:_s,voucher_code:_v,remaining_seconds:_rem})
+    body:JSON.stringify({session_id:_s,voucher_code:_v})
   }).then(function(r){return r.json();})
   .then(function(d){
     if(!d.success||d.action==='disconnect'){
       stopTimers();clearLocal();
-      if((d.message||'').toLowerCase().includes('another device')){
-        kicked(d.message);
-      } else {expired();}
+      if((d.message||'').toLowerCase().includes('another device')){kicked(d.message);}
+      else{expired();}
     }
-    // Do NOT update _rem from heartbeat response — no jump
+    // No time update from heartbeat — prevents jump
   }).catch(function(){});
 }
 
-// ── Poll for kick — uses verify, no deduction ─────────────────
+// ── Poll for kick ─────────────────────────────────────────────
 function pollKick(){
   if(!_s||!_v) return;
   fetch('/portal/verify',{
@@ -675,17 +514,13 @@ function pollKick(){
 window.disconnect=function(){
   if(!confirm('End your session and disconnect from the internet?')) return;
   stopTimers();
-  var remAtLogout=_rem;
-  var sid=_s, vc=_v;
-  clearLocal();
-  _s=_v=null;_rem=_total=0;
-  // GA event
+  var remNow=_rem,sid=_s,vc=_v;
+  clearLocal();_s=_v=null;_rem=_total=0;
   if(typeof gtag!=='undefined') gtag('event','voucher_disconnect',{voucher_code:vc});
-  // Send exact seconds to server
   fetch('/portal/logout',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({session_id:sid,voucher_code:vc,remaining_seconds:remAtLogout})
+    body:JSON.stringify({session_id:sid,voucher_code:vc,remaining_seconds:remNow})
   }).catch(function(){});
   show('login');resetForm();
 };
@@ -697,32 +532,24 @@ function kicked(reason){
     reason||'Your session was ended because another device connected using the same voucher code.';
   show('kicked');
 }
-
 function expired(){
   if(typeof gtag!=='undefined') gtag('event','voucher_expired',{voucher_code:_v});
   show('expired');
 }
-
-function stopTimers(){
-  clearInterval(_ct);clearInterval(_ht);clearInterval(_pt);
-  _ct=_ht=_pt=null;
-}
-
+function stopTimers(){clearInterval(_ct);clearInterval(_ht);clearInterval(_pt);_ct=_ht=_pt=null;}
 function resetForm(){
   document.getElementById('voucher-input').value='';
   document.getElementById('connect-btn').innerHTML='Connect to Internet';
   document.getElementById('connect-btn').disabled=false;
   clearAlerts();
 }
-
-window.showView=show;
 window.resetForm=resetForm;
 
 // ── Init: restore session on page load ────────────────────────
 getFp();
 
 if(loadLocal()){
-  // Verify with server — gets exact remaining_seconds
+  // Verify with server to get exact remaining_seconds
   fetch('/portal/verify',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -730,15 +557,15 @@ if(loadLocal()){
   }).then(function(r){return r.json();})
   .then(function(d){
     if(d.success&&d.action!=='disconnect'){
-      // Use server's exact remaining_seconds as source of truth on restore
-      _rem  = d.remaining_seconds;
-      _total= _total||_rem;
+      // Server has the synced value from beforeunload
+      _rem  =d.remaining_seconds;
+      _total=_total||_rem;
       startSession();
     } else {
       clearLocal();show('login');
     }
   }).catch(function(){
-    // Server unreachable — use local countdown (already adjusted for elapsed time)
+    // Offline — use local estimate
     startSession();
   });
 } else {
